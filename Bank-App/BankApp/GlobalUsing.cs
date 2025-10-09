@@ -1,1 +1,1 @@
-﻿global using Bank-App.Interfaces;
+﻿global using BankApp.Interfaces;
