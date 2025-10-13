@@ -10,6 +10,18 @@ public class Transaction : ITransaction
     public Guid AccountId { get; }
     public Guid? TransferTargetId { get; }
 
+    [JsonConstructor]
+    public Transaction(Guid id, DateTime date, decimal amount, string type, decimal balanceAfter, Guid accountId, Guid? transferTargetId)
+    {
+        Id = id;
+        Date = date;
+        Amount = amount;
+        Type = type;
+        BalanceAfter = balanceAfter;
+        AccountId = accountId;
+        TransferTargetId = transferTargetId;
+    }
+
     public Transaction(decimal amount, string type, decimal balanceAfter, Guid accountId, Guid? transferTargetId = null)
     {
         Date = DateTime.Now;

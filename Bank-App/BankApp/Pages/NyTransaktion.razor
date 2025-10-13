@@ -1,4 +1,117 @@
 ﻿@page "/nytransaktion"
+@inject IAccountService AccountService
 
 <h3>Ny Transaktion</h3>
-<p>Här kommer du att kunna göra insättningar, uttag och överföringar.</p>
+
+@if (_accounts == null)
+{
+    <p>Laddar konton...</p>
+}
+else if (!_accounts.Any())
+{
+    <p>Skapa ett konto först innan du kan göra transaktioner.</p>
+}
+else
+{
+    <EditForm Model="_model" OnValidSubmit="HandleSubmitAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div>
+            <label>Välj Konto:</label>
+            <InputSelect @bind-Value="_model.AccountId">
+                <option value="">Välj konto...</option>
+                @foreach (var account in _accounts)
+                {
+                    <option value="@account.Id">@account.Name (@account.AccountType) - @account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</option>
+                }
+            </InputSelect>
+        </div>
+
+        <div>
+            <label>Typ av Transaktion:</label>
+            <InputSelect @bind-Value="_model.TransactionType">
+                <option value="Deposit">Insättning</option>
+                <option value="Withdraw">Uttag</option>
+            </InputSelect>
+        </div>
+
+        <div>
+            <label>Belopp:</label>
+            <InputNumber @bind-Value="_model.Amount" />
+        </div>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div style="color: red; font-weight: bold;">Fel: @_errorMessage</div>
+        }
+        @if (!string.IsNullOrEmpty(_successMessage))
+        {
+            <div style="color: green; font-weight: bold;">@_successMessage</div>
+        }
+        
+        <button type="submit">Utför Transaktion</button>
+    </EditForm>
+}
+
+@code {
+    private TransactionModel _model = new();
+    private List<IBankAccount> _accounts;
+    private string _errorMessage;
+    private string _successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAccountsAsync();
+    }
+
+    private async Task LoadAccountsAsync()
+    {
+        _accounts = await AccountService.GetAccountsAsync();
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        _errorMessage = string.Empty;
+        _successMessage = string.Empty;
+        string result = string.Empty;
+        
+        if (_model.AccountId == Guid.Empty)
+        {
+            _errorMessage = "Välj ett konto för transaktionen.";
+            return;
+        }
+        if (_model.Amount <= 0)
+        {
+            _errorMessage = "Beloppet måste vara större än noll.";
+            return;
+        }
+
+        if (_model.TransactionType == "Deposit")
+        {
+            result = await AccountService.DepositAsync(_model.AccountId, _model.Amount);
+        }
+        else if (_model.TransactionType == "Withdraw")
+        {
+            result = await AccountService.WithdrawAsync(_model.AccountId, _model.Amount);
+        }
+
+        if (!string.IsNullOrEmpty(result))
+        {
+            _errorMessage = result;
+        }
+        else
+        {
+            _successMessage = $"{_model.TransactionType} lyckades! Saldo uppdaterat.";
+            _model.Amount = 0;
+            await LoadAccountsAsync();
+        }
+    }
+
+    private class TransactionModel
+    {
+        public Guid AccountId { get; set; } = Guid.Empty;
+        public string TransactionType { get; set; } = "Deposit";
+        public decimal Amount { get; set; } = 0;
+    }
+}

@@ -6,5 +6,9 @@
         Task<List<IBankAccount>> GetAccountsAsync();
         
         Task DeleteAccountAsync(Guid accountId);
+
+        Task<string> DepositAsync(Guid accountId, decimal amount);
+        Task<string> WithdrawAsync(Guid accountId, decimal amount);
+        Task<List<ITransaction>> GetTransactionsAsync(Guid accountId);
     }
 }
