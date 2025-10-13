@@ -1,26 +1,56 @@
-﻿namespace BankApp.Services
+﻿namespace BankApp.Services;
+
+public class AccountService : IAccountService
 {
-    public class AccountService : IAccountService
-    {
-        private readonly List<IBankAccount> _accounts = new ();
+    private readonly IStorageService _storageService;
+    private const string AccountsKey = "BankApp_Accounts";
 
-        public IBankAccount CreateBankAccount(string name, AccountType accountType, string currency,
-            decimal initalBalance)
+    public AccountService(IStorageService storageService)
+    {
+        _storageService = storageService;
+    }
+
+    public IBankAccount CreateAccount(string name, AccountType accountType, string currency, decimal initalBalance) => throw new NotImplementedException("Använd CreateAccountAsync");
+    public List<IBankAccount> GetAccounts() => throw new NotImplementedException("Använd GetAccountsAsync");
+
+    public async Task<IBankAccount> CreateAccountAsync(string name, AccountType type, string currency, decimal initialBalance)
+    {
+        var newAccount = new BankAccount(name, type, currency, initialBalance);
+        
+        var accounts = await GetAccountsInternalAsync();
+        accounts.Add(newAccount);
+
+        await SaveAccountsAsync(accounts);
+        
+        return newAccount;
+    }
+
+    public async Task<List<IBankAccount>> GetAccountsAsync()
+    {
+        return (await GetAccountsInternalAsync()).Cast<IBankAccount>().ToList();
+    }
+    
+    public async Task DeleteAccountAsync(Guid accountId)
+    {
+        var accounts = await GetAccountsInternalAsync();
+        
+        var accountToRemove = accounts.FirstOrDefault(a => a.Id == accountId);
+
+        if (accountToRemove != null)
         {
-            var account = new BankAccount(name, accountType, currency, initalBalance);
-            _accounts.Add(account);
-            return account;
+            accounts.Remove(accountToRemove);
         }
-
-    public List<IBankAccount> GetAccounts() => _accounts;
-    public void GetAccounts(string modelName, string modelCurrency, decimal modelInitialBalance)
-    {
-        throw new NotImplementedException();
+        
+        await SaveAccountsAsync(accounts);
     }
 
-    public void CreateAccount(string modelName, AccountType modelType, string modelCurrency, decimal modelInitialBalance)
+    private async Task<List<BankAccount>> GetAccountsInternalAsync()
     {
-        throw new NotImplementedException();
+        return await _storageService.LoadAsync<List<BankAccount>>(AccountsKey) ?? new List<BankAccount>();
     }
+
+    private async Task SaveAccountsAsync(List<BankAccount> accounts)
+    {
+        await _storageService.SaveAsync(AccountsKey, accounts);
     }
 }

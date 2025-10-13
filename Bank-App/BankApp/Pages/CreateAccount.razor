@@ -1,8 +1,9 @@
 ﻿@page "/CreateAccount"
+@page "/"
 @inject IAccountService AccountService
 
 <h3>Vänligen skapa ett konto</h3>
-<EditForm Model="_model" OnValidSubmit="CreateAccountAsync">
+<EditForm Model="_model" OnValidSubmit="HandleValidSubmitAsync">
     <DataAnnotationsValidator />
     <ValidationSummary />
     <div>
@@ -12,7 +13,6 @@
     <div>
         <label>Kontotyp</label>
         <InputSelect @bind-Value="_model.Type">
-            <option value="">Välj kontotyp!</option>
             <option value="@AccountType.Deposits">Baskonto</option>
             <option value="@AccountType.Savings">Sparkonto</option>
         </InputSelect>
@@ -28,55 +28,81 @@
     <button type="submit">Skapa</button>
 </EditForm>
 
+<hr />
+
+<h3>Dina Konton (@_accounts.Count)</h3>
+
+@if (_accounts == null || !_accounts.Any())
+{
+    <p>Inga konton registrerade.</p>
+}
+else
+{
+    <ul>
+        @foreach (var account in _accounts)
+        {
+            <li>
+                <strong>@account.Name</strong> (@account.AccountType) - @account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE")) @account.Currency
+                
+                <button @onclick="() => DeleteAccount(account.Id)">Radera</button>
+            </li>
+        }
+    </ul>
+}
+
 @code {
     private CreateAccountModel _model = new();
+    private List<IBankAccount> _accounts = new();
 
-    private Task CreateAccountsAsync()
+    protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            Console.WriteLine(_model.Name);
-
-            AccountService.GetAccounts(
-                _model.Name,
-                _model.Currency,
-                _model.InitialBalance);
-        }
-        catch (Exception exeption)
-        {
-            Console.WriteLine(exeption);
-            throw;
-        }
-
-        return Task.CompletedTask;
+        await LoadAccountsAsync();
     }
-    
-        
-    private void CreateAccountAsync()
+
+    private async Task LoadAccountsAsync()
     {
-        AccountService.CreateBankAccount(
+        _accounts = await AccountService.GetAccountsAsync();
+    }
+
+    private async Task HandleValidSubmitAsync()
+    {
+        await AccountService.CreateAccountAsync(
             _model.Name,
             _model.Type,
             _model.Currency,
             _model.InitialBalance
         );
+
+        _model.Clear();
+        await LoadAccountsAsync();
     }
-
-
+    
+    private async Task DeleteAccount(Guid accountId)
+    {
+        try
+        {
+            await AccountService.DeleteAccountAsync(accountId);
+            await LoadAccountsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ett fel uppstod vid radering: {ex.Message}");
+        }
+    }
 
     private class CreateAccountModel
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public AccountType Type { get; set; }
-        public string Currency { get; set; }
-        public decimal InitialBalance { get; set; }
+        public string Currency { get; set; } = "SEK";
+        public decimal InitialBalance { get; set; } = 0;
 
         public void Clear()
         {
             Name = string.Empty;
-            Currency = string.Empty;
+            Currency = "SEK";
             InitialBalance = 0;
             Type = default;
         }
     }
-}`
+}

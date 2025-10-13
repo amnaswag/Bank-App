@@ -9,6 +9,17 @@ public class BankAccount : IBankAccount
     public decimal Balance { get; private set; }
     public DateTime LastUpdated { get; private set; }
 
+    [JsonConstructor]
+    public BankAccount(Guid id, string name, AccountType accountType, string currency, decimal balance, DateTime lastUpdated)
+    {
+        Id = id; 
+        Name = name;
+        AccountType = accountType;
+        Currency = currency;
+        Balance = balance;
+        LastUpdated = lastUpdated;
+    }
+
     public BankAccount(string name, AccountType accountType, string currency, decimal initalBalance)
     {
         Name = name;
@@ -17,14 +28,22 @@ public class BankAccount : IBankAccount
         Balance = initalBalance;
         LastUpdated = DateTime.Now;
     }
+
     public void Withdrawn(decimal amount)
     {
-        throw new NotImplementedException();
+        if (amount > 0 && Balance >= amount)
+        {
+            Balance -= amount;
+            LastUpdated = DateTime.Now;
+        }
     }
 
     public void Deposit(decimal amount)
     {
-        throw new NotImplementedException();
+        if (amount > 0)
+        {
+            Balance += amount;
+            LastUpdated = DateTime.Now;
+        }
     }
 }
-
