@@ -1,4 +1,48 @@
 ﻿@page "/konton"
+@inject IAccountService AccountService
 
 <h3>Konton</h3>
-<p>Denna sida kommer i framtiden att visa en komplett översikt över alla konton.</p>
+
+@if (_accounts == null)
+{
+    <p>Laddar konton...</p>
+}
+else if (!_accounts.Any())
+{
+    <p>Inga konton registrerade. Gå till <a href="CreateAccount">Skapa konto</a> för att lägga till ett nytt.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>Namn</th>
+            <th>Typ</th>
+            <th>Valuta</th>
+            <th>Saldo</th>
+            <th>Senast Uppdaterad</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var account in _accounts)
+        {
+            <tr>
+                <td>@account.Name</td>
+                <td>@account.AccountType</td>
+                <td>@account.Currency</td>
+                <td><strong>@account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</strong></td>
+                <td>@account.LastUpdated.ToString("yyyy-MM-dd HH:mm")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<IBankAccount> _accounts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _accounts = await AccountService.GetAccountsAsync();
+    }
+}

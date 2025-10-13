@@ -1,4 +1,111 @@
 ﻿@page "/historik"
+@inject IAccountService AccountService
 
 <h3>Historik</h3>
-<p>Denna sida kommer att visa transaktionshistorik för dina konton.</p>
+
+@if (_accounts == null)
+{
+    <p>Laddar konton...</p>
+}
+else if (!_accounts.Any())
+{
+    <p>Inga konton finns att visa historik för.</p>
+}
+else
+{
+    <div style="margin-bottom: 15px;">
+        <label>Välj Konto:</label>
+        
+        <select @onchange="OnAccountChanged">
+            <option value="" selected="@(!SelectedAccountId.HasValue)">Välj konto...</option>
+            @foreach (var account in _accounts)
+            {
+                <option value="@account.Id" selected="@(SelectedAccountId == account.Id)">
+                    @account.Name (@account.AccountType) - Saldo: @account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))
+                </option>
+            }
+        </select>
+        
+    </div>
+
+    @if (SelectedAccountId.HasValue && SelectedAccountId.Value != Guid.Empty && _transactions == null)
+    {
+        <p>Laddar historik...</p>
+    }
+    else if (SelectedAccountId.HasValue && SelectedAccountId.Value != Guid.Empty && !_transactions.Any())
+    {
+        <p>Inga transaktioner hittades för detta konto.</p>
+    }
+    else if (SelectedAccountId.HasValue && SelectedAccountId.Value != Guid.Empty)
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Typ</th>
+                    <th>Belopp</th>
+                    <th>Saldo Efter</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var transaction in _transactions)
+                {
+                    <tr>
+                        <td>@transaction.Date.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        <td>@transaction.Type</td>
+                        <td style="color: @(transaction.Amount < 0 ? "red" : "green");">
+                            @transaction.Amount.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))
+                        </td>
+                        <td>@transaction.BalanceAfter.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    private List<IBankAccount> _accounts;
+    private List<ITransaction> _transactions;
+    private Guid? SelectedAccountId { get; set; } = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _accounts = await AccountService.GetAccountsAsync();
+
+        if (_accounts.Any())
+        {
+            SelectedAccountId = _accounts.First().Id;
+            await LoadTransactionsForSelectedAccount();
+        }
+    }
+
+    private async Task OnAccountChanged(ChangeEventArgs e)
+    {
+        _transactions = null; 
+
+        if (Guid.TryParse(e.Value?.ToString(), out Guid newId) && newId != Guid.Empty)
+        {
+            SelectedAccountId = newId;
+        }
+        else
+        {
+            SelectedAccountId = null;
+        }
+        
+        StateHasChanged(); 
+        await LoadTransactionsForSelectedAccount();
+    }
+    
+    private async Task LoadTransactionsForSelectedAccount()
+    {
+        if (SelectedAccountId.HasValue && SelectedAccountId.Value != Guid.Empty)
+        {
+            _transactions = await AccountService.GetTransactionsAsync(SelectedAccountId.Value);
+        }
+        else
+        {
+            _transactions = new List<ITransaction>();
+        }
+    }
+}

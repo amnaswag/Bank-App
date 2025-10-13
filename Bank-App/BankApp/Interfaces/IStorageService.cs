@@ -2,6 +2,6 @@
 
 public interface IStorageService
 {
-    Task SaveAsync<T>(string key, T data);
-    Task<T> LoadAsync<T>(string key);
+    Task SaveAsync<T>(string key, T data); // Sparar 
+    Task<T> LoadAsync<T>(string key); // Hämta
 }
