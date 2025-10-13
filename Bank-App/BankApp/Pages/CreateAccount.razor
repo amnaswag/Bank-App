@@ -6,29 +6,34 @@
 <EditForm Model="_model" OnValidSubmit="HandleValidSubmitAsync">
     <DataAnnotationsValidator />
     <ValidationSummary />
-    <div>
-        <label>Kontonamn</label>
-        <InputText @bind-Value="_model.Name" />
+
+    <div class="mb-3">
+        <label class="form-label">Kontonamn</label>
+        <InputText @bind-Value="_model.Name" class="form-control" />
     </div>
-    <div>
-        <label>Kontotyp</label>
-        <InputSelect @bind-Value="_model.Type">
-            <option value="@AccountType.Deposits">Baskonto</option>
-            <option value="@AccountType.Savings">Sparkonto</option>
+    
+    <div class="mb-3">
+        <label class="form-label">Kontotyp</label>
+        <InputSelect @bind-Value="_model.Type" class="form-select">
+            <option value="@AccountType.Lönekonto">Lönekonto</option>
+            <option value="@AccountType.Sparkonto">Sparkonto</option>
         </InputSelect>
     </div>
-    <div>
-        <label>Valuta</label>
-        <InputText @bind-Value="_model.Currency" />
+    
+    <div class="mb-3">
+        <label class="form-label">Valuta</label>
+        <InputText @bind-Value="_model.Currency" class="form-control" />
     </div>
-    <div>
-        <label>Start saldo</label>
-        <InputNumber @bind-Value="_model.InitialBalance" />
+    
+    <div class="mb-3">
+        <label class="form-label">Start saldo</label>
+        <InputNumber @bind-Value="_model.InitialBalance" class="form-control" />
     </div>
-    <button type="submit">Skapa</button>
+    
+    <button type="submit" class="btn btn-primary mt-3">Skapa Konto</button>
 </EditForm>
 
-<hr />
+<hr class="mt-4" />
 
 <h3>Dina Konton (@_accounts.Count)</h3>
 
@@ -38,16 +43,31 @@
 }
 else
 {
-    <ul>
-        @foreach (var account in _accounts)
-        {
-            <li>
-                <strong>@account.Name</strong> (@account.AccountType) - @account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE")) @account.Currency
-                
-                <button @onclick="() => DeleteAccount(account.Id)">Radera</button>
-            </li>
-        }
-    </ul>
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Namn</th>
+                <th>Typ</th>
+                <th>Saldo</th>
+                <th>Valuta</th>
+                <th>Åtgärd</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var account in _accounts)
+            {
+                <tr>
+                    <td><strong>@account.Name</strong></td>
+                    <td>@account.AccountType</td>
+                    <td>@account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</td>
+                    <td>@account.Currency</td>
+                    <td>
+                        <button @onclick="() => DeleteAccount(account.Id)" class="btn btn-danger btn-sm">Radera</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
 }
 
 @code {
@@ -79,15 +99,8 @@ else
     
     private async Task DeleteAccount(Guid accountId)
     {
-        try
-        {
-            await AccountService.DeleteAccountAsync(accountId);
-            await LoadAccountsAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ett fel uppstod vid radering: {ex.Message}");
-        }
+        await AccountService.DeleteAccountAsync(accountId);
+        await LoadAccountsAsync();
     }
 
     private class CreateAccountModel
