@@ -2,6 +2,6 @@
 
 public enum AccountType
 {
-    Savings,
-    Deposits
+    Sparkonto,
+    Lönekonto
 }
