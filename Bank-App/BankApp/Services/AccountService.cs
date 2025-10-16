@@ -2,97 +2,68 @@
 
 public class AccountService : IAccountService
 {
-    private readonly IStorageService _storageService;
-    private const string AccountsKey = "BankApp_Accounts";
+    private readonly IAccountRepository _accountRepository;
+    private readonly IStorageService _storageService; 
     private const string TransactionsKey = "BankApp_Transactions";
 
-    public AccountService(IStorageService storageService)
+    public AccountService(IAccountRepository accountRepository, IStorageService storageService)
     {
+        _accountRepository = accountRepository;
         _storageService = storageService;
     }
 
-    public IBankAccount CreateAccount(string name, AccountType accountType, string currency, decimal initalBalance) => throw new NotImplementedException("Använd CreateAccountAsync");
-    public List<IBankAccount> GetAccounts() => throw new NotImplementedException("Använd GetAccountsAsync");
-
-    public async Task<IBankAccount> CreateAccountAsync(string name, AccountType type, string currency, decimal initialBalance)
+    public async Task<IBankAccount> CreateAccountAsync(string name, AccountType type, string currency, decimal initialBalance, string? pinHash = null)
     {
-        var newAccount = new BankAccount(name, type, currency, initialBalance);
+        var newAccount = new BankAccount(name, type, currency, initialBalance, pinHash);
         
-        var accounts = await GetAccountsInternalAsync();
-        accounts.Add(newAccount);
-
-        await SaveAccountsAsync(accounts);
+        await _accountRepository.AddAccountAsync(newAccount);
         
         return newAccount;
     }
 
     public async Task<List<IBankAccount>> GetAccountsAsync()
     {
-        return (await GetAccountsInternalAsync()).Cast<IBankAccount>().ToList();
+        return (await _accountRepository.GetAllAccountsAsync()).Cast<IBankAccount>().ToList();
     }
     
     public async Task DeleteAccountAsync(Guid accountId)
     {
-        var accounts = await GetAccountsInternalAsync();
-        
-        var accountToRemove = accounts.FirstOrDefault(a => a.Id == accountId);
-
-        if (accountToRemove != null)
-        {
-            accounts.Remove(accountToRemove);
-        }
-        
-        await SaveAccountsAsync(accounts);
+        await _accountRepository.DeleteAccountAsync(accountId);
     }
 
     public async Task<string> DepositAsync(Guid accountId, decimal amount)
     {
-        if (amount <= 0)
-        {
-            return "Beloppet måste vara större än noll.";
-        }
+        if (amount <= 0) return "Beloppet måste vara större än noll.";
 
-        var accounts = await GetAccountsInternalAsync();
+        var accounts = await _accountRepository.GetAllAccountsAsync();
         var account = accounts.FirstOrDefault(a => a.Id == accountId);
 
-        if (account == null)
-        {
-            return "Konto hittades inte.";
-        }
+        if (account == null) return "Konto hittades inte.";
         
         account.Deposit(amount);
         
-        await CreateTransactionAsync(account.Id, amount, "Insättning", account.Balance);
+        await CreateTransactionAsync(account.Id, TransactionType.Insättning, amount, account.Balance);
 
-        await SaveAccountsAsync(accounts);
+        await _accountRepository.SaveAllAccountsAsync(accounts);
         return string.Empty;
     }
 
     public async Task<string> WithdrawAsync(Guid accountId, decimal amount)
     {
-        if (amount <= 0)
-        {
-            return "Beloppet måste vara större än noll.";
-        }
+        if (amount <= 0) return "Beloppet måste vara större än noll.";
 
-        var accounts = await GetAccountsInternalAsync();
+        var accounts = await _accountRepository.GetAllAccountsAsync();
         var account = accounts.FirstOrDefault(a => a.Id == accountId);
 
-        if (account == null)
-        {
-            return "Konto hittades inte.";
-        }
+        if (account == null) return "Konto hittades inte.";
         
-        if (account.Balance < amount)
-        {
-            return $"Övertrassering hindrad: Uttag på {amount:C2} är större än saldot {account.Balance:C2}.";
-        }
+        if (account.Balance < amount) return $"Övertrassering hindrad: Uttag på {amount:C2} är större än saldot {account.Balance:C2}.";
 
         account.Withdrawn(amount);
 
-        await CreateTransactionAsync(account.Id, amount * -1, "Uttag", account.Balance);
+        await CreateTransactionAsync(account.Id, TransactionType.Uttag, amount * -1, account.Balance);
         
-        await SaveAccountsAsync(accounts);
+        await _accountRepository.SaveAllAccountsAsync(accounts);
         return string.Empty;
     }
 
@@ -107,23 +78,80 @@ public class AccountService : IAccountService
             .ToList();
     }
     
-    private async Task CreateTransactionAsync(Guid accountId, decimal amount, string type, decimal balanceAfter)
+    public async Task<string> ExportDataToJsonAsync()
     {
-        var newTransaction = new Transaction(amount, type, balanceAfter, accountId);
+        var allAccounts = await _accountRepository.GetAllAccountsAsync();
+        var allTransactions = await _storageService.LoadAsync<List<Transaction>>(TransactionsKey) ?? new List<Transaction>();
+
+        var exportModel = new ExportModel
+        {
+            Accounts = allAccounts,
+            Transactions = allTransactions
+        };
+
+        return JsonSerializer.Serialize(exportModel, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    public async Task<string> ImportDataFromJsonAsync(string jsonData)
+    {
+        try
+        {
+            var importModel = JsonSerializer.Deserialize<ExportModel>(jsonData);
+
+            if (importModel?.Accounts == null)
+            {
+                return "Fel: Kunde inte hitta kontodata i filen.";
+            }
+
+            await _accountRepository.SaveAllAccountsAsync(importModel.Accounts);
+            await _storageService.SaveAsync(TransactionsKey, importModel.Transactions ?? new List<Transaction>());
+
+            return string.Empty;
+        }
+        catch (JsonException ex)
+        {
+            return $"Fel vid tolkning av JSON-filen: {ex.Message}";
+        }
+        catch (Exception)
+        {
+            return "Ett okänt fel inträffade under importen.";
+        }
+    }
+    
+    public async Task<bool> UnlockAccountAsync(Guid accountId, string pin)
+    {
+        var accounts = await _accountRepository.GetAllAccountsAsync();
+        var account = accounts.FirstOrDefault(a => a.Id == accountId);
+
+        if (account?.PinHash == pin)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    private class ExportModel
+    {
+        public List<BankAccount>? Accounts { get; set; }
+        public List<Transaction>? Transactions { get; set; }
+    }
+    
+    private async Task CreateTransactionAsync(Guid accountId, TransactionType type, decimal amount, decimal balanceAfter, Guid? toAccountId = null)
+    {
+        Transaction newTransaction;
+        
+        if (type == TransactionType.Överföring && toAccountId.HasValue)
+        {
+            newTransaction = new Transaction(accountId, toAccountId.Value, amount, balanceAfter);
+        }
+        else
+        {
+            newTransaction = new Transaction(accountId, type, amount, balanceAfter);
+        }
         
         var allTransactions = await _storageService.LoadAsync<List<Transaction>>(TransactionsKey) ?? new List<Transaction>();
         allTransactions.Add(newTransaction);
         
         await _storageService.SaveAsync(TransactionsKey, allTransactions);
-    }
-    
-    private async Task<List<BankAccount>> GetAccountsInternalAsync()
-    {
-        return await _storageService.LoadAsync<List<BankAccount>>(AccountsKey) ?? new List<BankAccount>();
-    }
-
-    private async Task SaveAccountsAsync(List<BankAccount> accounts)
-    {
-        await _storageService.SaveAsync(AccountsKey, accounts);
     }
 }

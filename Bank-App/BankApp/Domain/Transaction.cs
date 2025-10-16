@@ -2,33 +2,46 @@
 
 public class Transaction : ITransaction
 {
+    private readonly List<ITransaction> _internalList = new();
+
     public Guid Id { get; } = Guid.NewGuid();
     public DateTime Date { get; }
     public decimal Amount { get; }
-    public string Type { get; }
     public decimal BalanceAfter { get; }
+    
     public Guid AccountId { get; }
-    public Guid? TransferTargetId { get; }
+    public Guid? ToAccountId { get; }
+    
+    public TransactionType TransactionType { get; }
 
+    public Transaction(Guid accountId, TransactionType transactionType, decimal amount, decimal balanceAfter)
+    {
+        Date = DateTime.Now;
+        Amount = amount;
+        BalanceAfter = balanceAfter;
+        AccountId = accountId;
+        TransactionType = transactionType;
+    }
+
+    public Transaction(Guid fromAccountId, Guid toAccountId, decimal amount, decimal balanceAfter)
+    {
+        Date = DateTime.Now;
+        Amount = amount;
+        BalanceAfter = balanceAfter;
+        AccountId = fromAccountId;
+        ToAccountId = toAccountId;
+        TransactionType = TransactionType.Överföring;
+    }
+    
     [JsonConstructor]
-    public Transaction(Guid id, DateTime date, decimal amount, string type, decimal balanceAfter, Guid accountId, Guid? transferTargetId)
+    public Transaction(Guid id, DateTime date, decimal amount, decimal balanceAfter, Guid accountId, TransactionType transactionType, Guid? toAccountId)
     {
         Id = id;
         Date = date;
         Amount = amount;
-        Type = type;
         BalanceAfter = balanceAfter;
         AccountId = accountId;
-        TransferTargetId = transferTargetId;
-    }
-
-    public Transaction(decimal amount, string type, decimal balanceAfter, Guid accountId, Guid? transferTargetId = null)
-    {
-        Date = DateTime.Now;
-        Amount = amount;
-        Type = type;
-        BalanceAfter = balanceAfter;
-        AccountId = accountId;
-        TransferTargetId = transferTargetId;
+        TransactionType = transactionType;
+        ToAccountId = toAccountId;
     }
 }

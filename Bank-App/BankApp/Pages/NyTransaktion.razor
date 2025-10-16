@@ -1,64 +1,77 @@
 ﻿@page "/nytransaktion"
 @inject IAccountService AccountService
 
-<h3>Ny Transaktion</h3>
+<div class="card shadow-sm p-4">
+    <h3>Ny Transaktion</h3>
 
-@if (_accounts == null)
-{
-    <p>Laddar konton...</p>
-}
-else if (!_accounts.Any())
-{
-    <p>Skapa ett konto först innan du kan göra transaktioner.</p>
-}
-else
-{
-    <EditForm Model="_model" OnValidSubmit="HandleSubmitAsync">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-
-        <div>
-            <label>Välj Konto:</label>
-            <InputSelect @bind-Value="_model.AccountId">
-                <option value="">Välj konto...</option>
-                @foreach (var account in _accounts)
-                {
-                    <option value="@account.Id">@account.Name (@account.AccountType) - @account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</option>
-                }
-            </InputSelect>
+    @if (_accounts == null)
+    {
+        <p>Laddar konton...</p>
+    }
+    else if (!_accounts.Any())
+    {
+        <div class="alert alert-warning" role="alert">
+            Skapa ett konto först innan du kan göra transaktioner.
         </div>
+    }
+    else
+    {
+        <EditForm Model="_model" OnValidSubmit="HandleSubmitAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
 
-        <div>
-            <label>Typ av Transaktion:</label>
-            <InputSelect @bind-Value="_model.TransactionType">
-                <option value="Deposit">Insättning</option>
-                <option value="Withdraw">Uttag</option>
-            </InputSelect>
-        </div>
+            <div class="mb-3">
+                <label class="form-label">Välj Konto:</label>
+                <InputSelect @bind-Value="_model.AccountId" class="form-select">
+                    <option value="">Välj konto...</option>
+                    @foreach (var account in _accounts)
+                    {
+                        <option value="@account.Id">@account.Name (@account.AccountType) - @account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</option>
+                    }
+                </InputSelect>
+            </div>
+            
+            @if (_isPinRequired)
+            {
+                <div class="mb-3">
+                    <label class="form-label">PIN-kod</label>
+                    <InputText @bind-Value="_model.Pin" class="form-control" type="password" maxlength="6" />
+                </div>
+            }
 
-        <div>
-            <label>Belopp:</label>
-            <InputNumber @bind-Value="_model.Amount" />
-        </div>
+            <div class="mb-3">
+                <label class="form-label">Typ av Transaktion:</label>
+                <InputSelect @bind-Value="_model.TransactionType" class="form-select">
+                    <option value="Deposit">Insättning</option>
+                    <option value="Withdraw">Uttag</option>
+                </InputSelect>
+            </div>
 
-        @if (!string.IsNullOrEmpty(_errorMessage))
-        {
-            <div style="color: red; font-weight: bold;">Fel: @_errorMessage</div>
-        }
-        @if (!string.IsNullOrEmpty(_successMessage))
-        {
-            <div style="color: green; font-weight: bold;">@_successMessage</div>
-        }
-        
-        <button type="submit">Utför Transaktion</button>
-    </EditForm>
-}
+            <div class="mb-3">
+                <label class="form-label">Belopp:</label>
+                <InputNumber @bind-Value="_model.Amount" class="form-control" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="alert alert-danger">Fel: @_errorMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(_successMessage))
+            {
+                <div class="alert alert-success">@_successMessage</div>
+            }
+            
+            <button type="submit" class="btn btn-primary mt-3">Utför Transaktion</button>
+        </EditForm>
+    }
+</div>
 
 @code {
     private TransactionModel _model = new();
     private List<IBankAccount> _accounts;
     private string _errorMessage;
     private string _successMessage;
+    private bool _isPinRequired = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -87,6 +100,23 @@ else
             return;
         }
 
+        var selectedAccount = _accounts.FirstOrDefault(a => a.Id == _model.AccountId);
+        if (!string.IsNullOrEmpty(selectedAccount?.PinHash))
+        {
+            if (string.IsNullOrEmpty(_model.Pin))
+            {
+                _errorMessage = "Detta konto kräver PIN-kod.";
+                _isPinRequired = true;
+                return;
+            }
+            
+            if (!await AccountService.UnlockAccountAsync(_model.AccountId, _model.Pin))
+            {
+                _errorMessage = "Felaktig PIN-kod.";
+                return;
+            }
+        }
+        
         if (_model.TransactionType == "Deposit")
         {
             result = await AccountService.DepositAsync(_model.AccountId, _model.Amount);
@@ -104,7 +134,8 @@ else
         {
             _successMessage = $"{_model.TransactionType} lyckades! Saldo uppdaterat.";
             _model.Amount = 0;
-            await LoadAccountsAsync();
+            _model.Pin = string.Empty; 
+            await LoadAccountsAsync(); 
         }
     }
 
@@ -113,5 +144,6 @@ else
         public Guid AccountId { get; set; } = Guid.Empty;
         public string TransactionType { get; set; } = "Deposit";
         public decimal Amount { get; set; } = 0;
+        public string Pin { get; set; } = string.Empty;
     }
 }

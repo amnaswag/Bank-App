@@ -1,14 +1,17 @@
-﻿namespace BankApp.Interfaces
-{
-    public interface IAccountService
-    {
-        Task<IBankAccount> CreateAccountAsync(string name, AccountType accountType, string currency, decimal initalBalance);
-        Task<List<IBankAccount>> GetAccountsAsync();
-        
-        Task DeleteAccountAsync(Guid accountId);
+﻿namespace BankApp.Interfaces;
 
-        Task<string> DepositAsync(Guid accountId, decimal amount);
-        Task<string> WithdrawAsync(Guid accountId, decimal amount);
-        Task<List<ITransaction>> GetTransactionsAsync(Guid accountId);
-    }
+public interface IAccountService
+{
+    Task<IBankAccount> CreateAccountAsync(string name, AccountType accountType, string currency, decimal initalBalance, string? pinHash = null);
+    
+    Task<List<IBankAccount>> GetAccountsAsync();
+    Task DeleteAccountAsync(Guid accountId);
+    Task<string> DepositAsync(Guid accountId, decimal amount);
+    Task<string> WithdrawAsync(Guid accountId, decimal amount);
+    Task<List<ITransaction>> GetTransactionsAsync(Guid accountId);
+
+    Task<bool> UnlockAccountAsync(Guid accountId, string pin);
+    
+    Task<string> ExportDataToJsonAsync();
+    Task<string> ImportDataFromJsonAsync(string jsonData);
 }

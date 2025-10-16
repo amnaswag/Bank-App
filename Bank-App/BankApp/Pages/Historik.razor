@@ -21,8 +21,7 @@ else
             @foreach (var account in _accounts)
             {
                 <option value="@account.Id" selected="@(SelectedAccountId == account.Id)">
-                    @account.Name (@account.AccountType) - Saldo: @account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))
-                </option>
+                    @account.Name (@account.AccountType) - Saldo: @account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</option>
             }
         </select>
         
@@ -52,7 +51,7 @@ else
                 {
                     <tr>
                         <td>@transaction.Date.ToString("yyyy-MM-dd HH:mm:ss")</td>
-                        <td>@transaction.Type</td>
+                        <td>@transaction.TransactionType</td>
                         <td style="color: @(transaction.Amount < 0 ? "red" : "green");">
                             @transaction.Amount.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))
                         </td>
@@ -71,15 +70,20 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _accounts = await AccountService.GetAccountsAsync();
+        await LoadAccountsAsync();
 
         if (_accounts.Any())
         {
             SelectedAccountId = _accounts.First().Id;
-            await LoadTransactionsForSelectedAccount();
+            await LoadTransactionsForSelectedAccountAsync();
         }
     }
 
+    private async Task LoadAccountsAsync()
+    {
+        _accounts = await AccountService.GetAccountsAsync();
+    }
+    
     private async Task OnAccountChanged(ChangeEventArgs e)
     {
         _transactions = null; 
@@ -94,10 +98,10 @@ else
         }
         
         StateHasChanged(); 
-        await LoadTransactionsForSelectedAccount();
+        await LoadTransactionsForSelectedAccountAsync();
     }
     
-    private async Task LoadTransactionsForSelectedAccount()
+    private async Task LoadTransactionsForSelectedAccountAsync()
     {
         if (SelectedAccountId.HasValue && SelectedAccountId.Value != Guid.Empty)
         {
