@@ -1,13 +1,12 @@
-﻿
-global using BankApp.Domain;
+﻿global using BankApp.Domain;
 global using BankApp.Interfaces;
 global using BankApp.Services;
 global using System.Text.Json;
-global using System.Text.Json.Serialization; // DENNA MÅSTE LÄGGAS TILL
+global using System.Text.Json.Serialization;
 global using System.Net.Http.Json;
 global using Microsoft.JSInterop;
 global using System.Threading.Tasks;
 global using System.Collections.Generic;
 global using System.Linq;
 global using System;
-global using BankApp.Interfaces;
+global using Microsoft.AspNetCore.Components.Forms;

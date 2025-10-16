@@ -2,77 +2,95 @@
 @page "/"
 @inject IAccountService AccountService
 
-<h3>Vänligen skapa ett konto</h3>
-<EditForm Model="_model" OnValidSubmit="HandleValidSubmitAsync">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
+<div class="row">
+    <div class="col-lg-6">
+        <h3>Vänligen skapa ett konto</h3>
+        <EditForm Model="_model" OnValidSubmit="HandleValidSubmitAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
 
-    <div class="mb-3">
-        <label class="form-label">Kontonamn</label>
-        <InputText @bind-Value="_model.Name" class="form-control" />
-    </div>
-    
-    <div class="mb-3">
-        <label class="form-label">Kontotyp</label>
-        <InputSelect @bind-Value="_model.Type" class="form-select">
-            <option value="@AccountType.Lönekonto">Lönekonto</option>
-            <option value="@AccountType.Sparkonto">Sparkonto</option>
-        </InputSelect>
-    </div>
-    
-    <div class="mb-3">
-        <label class="form-label">Valuta</label>
-        <InputText @bind-Value="_model.Currency" class="form-control" />
-    </div>
-    
-    <div class="mb-3">
-        <label class="form-label">Start saldo</label>
-        <InputNumber @bind-Value="_model.InitialBalance" class="form-control" />
-    </div>
-    
-    <button type="submit" class="btn btn-primary mt-3">Skapa Konto</button>
-</EditForm>
-
-<hr class="mt-4" />
-
-<h3>Dina Konton (@_accounts.Count)</h3>
-
-@if (_accounts == null || !_accounts.Any())
-{
-    <p>Inga konton registrerade.</p>
-}
-else
-{
-    <table class="table table-striped table-hover">
-        <thead>
-            <tr>
-                <th>Namn</th>
-                <th>Typ</th>
-                <th>Saldo</th>
-                <th>Valuta</th>
-                <th>Åtgärd</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var account in _accounts)
+            <div class="mb-3">
+                <label class="form-label">Kontonamn</label>
+                <InputText @bind-Value="_model.Name" class="form-control" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Kontotyp</label>
+                <InputSelect @bind-Value="_model.Type" class="form-select">
+                    <option value="@AccountType.Lönekonto">Lönekonto</option>
+                    <option value="@AccountType.Sparkonto">Sparkonto</option>
+                </InputSelect>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Valuta</label>
+                <InputText @bind-Value="_model.Currency" class="form-control" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Start saldo</label>
+                <InputNumber @bind-Value="_model.InitialBalance" class="form-control" />
+            </div>
+            
+            <div class="mb-3 form-check">
+                <InputCheckbox @bind-Value="_model.RequiresPin" class="form-check-input" id="requiresPinCheck" />
+                <label class="form-check-label" for="requiresPinCheck">Kräv PIN-kod för detta konto (Valfri)</label>
+            </div>
+            
+            @if (_model.RequiresPin)
             {
-                <tr>
-                    <td><strong>@account.Name</strong></td>
-                    <td>@account.AccountType</td>
-                    <td>@account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</td>
-                    <td>@account.Currency</td>
-                    <td>
-                        <button @onclick="() => DeleteAccount(account.Id)" class="btn btn-danger btn-sm">Radera</button>
-                    </td>
-                </tr>
+                <div class="mb-3">
+                    <label class="form-label">PIN-kod (Siffror)</label>
+                    <InputText @bind-Value="_model.Pin" class="form-control" type="password" maxlength="6" />
+                </div>
             }
-        </tbody>
-    </table>
-}
+
+            <button type="submit" class="btn btn-primary mt-3">Skapa Konto</button>
+        </EditForm>
+    </div>
+    
+    <div class="col-lg-6">
+        <hr class="mt-4" />
+        <h3>Dina Konton (@_accounts.Count)</h3>
+        
+        @if (_accounts == null || !_accounts.Any())
+        {
+            <p>Inga konton registrerade.</p>
+        }
+        else
+        {
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Namn</th>
+                        <th>Typ</th>
+                        <th>PIN</th>
+                        <th>Saldo</th>
+                        <th>Åtgärd</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var account in _accounts)
+                    {
+                        <tr>
+                            <td><strong>@account.Name</strong></td>
+                            <td>@account.AccountType</td>
+                            <td>@(string.IsNullOrEmpty(account.PinHash) ? "Nej" : "Ja")</td>
+                            <td>@account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</td>
+                            <td>
+                                <button @onclick="() => DeleteAccountAsync(account.Id)" class="btn btn-danger btn-sm">Radera</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
 
 @code {
     private CreateAccountModel _model = new();
-    private List<IBankAccount> _accounts = new();
+    private List<IBankAccount> _accounts;
 
     protected override async Task OnInitializedAsync()
     {
@@ -86,18 +104,25 @@ else
 
     private async Task HandleValidSubmitAsync()
     {
+        string? pinToSave = null;
+        if (_model.RequiresPin)
+        {
+            pinToSave = _model.Pin;
+        }
+
         await AccountService.CreateAccountAsync(
             _model.Name,
             _model.Type,
             _model.Currency,
-            _model.InitialBalance
+            _model.InitialBalance,
+            pinToSave
         );
 
         _model.Clear();
         await LoadAccountsAsync();
     }
     
-    private async Task DeleteAccount(Guid accountId)
+    private async Task DeleteAccountAsync(Guid accountId)
     {
         await AccountService.DeleteAccountAsync(accountId);
         await LoadAccountsAsync();
@@ -109,13 +134,17 @@ else
         public AccountType Type { get; set; }
         public string Currency { get; set; } = "SEK";
         public decimal InitialBalance { get; set; } = 0;
-
+        public string Pin { get; set; } = string.Empty;
+        public bool RequiresPin { get; set; } = false;
+        
         public void Clear()
         {
             Name = string.Empty;
             Currency = "SEK";
             InitialBalance = 0;
             Type = default;
+            Pin = string.Empty;
+            RequiresPin = false;
         }
     }
 }

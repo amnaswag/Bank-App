@@ -1,7 +1,20 @@
 ﻿@page "/konton"
 @inject IAccountService AccountService
+@inject IJSRuntime JsRuntime
 
 <h3>Konton</h3>
+
+<div class="mb-3 d-flex justify-content-end gap-2">
+    <button class="btn btn-info" @onclick="ExportDataAsync">Exportera till JSON</button>
+    
+    <InputFile OnChange="LoadDataAsync" id="importFile" hidden />
+    <label for="importFile" class="btn btn-warning">Importera från JSON</label>
+</div>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+    <div class="alert @(_isError ? "alert-danger" : "alert-success")">@_message</div>
+}
 
 @if (_accounts == null)
 {
@@ -9,40 +22,101 @@
 }
 else if (!_accounts.Any())
 {
-    <p>Inga konton registrerade. Gå till <a href="CreateAccount">Skapa konto</a> för att lägga till ett nytt.</p>
+    <div class="alert alert-info" role="alert">
+        Inga konton registrerade. Gå till <a href="CreateAccount">Skapa konto</a> för att lägga till ett nytt.
+    </div>
 }
 else
 {
-    <table class="table table-striped">
+    <table class="table table-striped table-hover">
         <thead>
-        <tr>
-            <th>Namn</th>
-            <th>Typ</th>
-            <th>Valuta</th>
-            <th>Saldo</th>
-            <th>Senast Uppdaterad</th>
-        </tr>
+            <tr>
+                <th>Namn</th>
+                <th>Typ</th>
+                <th>Valuta</th>
+                <th>Saldo</th>
+                <th>Senast Uppdaterad</th>
+            </tr>
         </thead>
         <tbody>
-        @foreach (var account in _accounts)
-        {
-            <tr>
-                <td>@account.Name</td>
-                <td>@account.AccountType</td>
-                <td>@account.Currency</td>
-                <td><strong>@account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</strong></td>
-                <td>@account.LastUpdated.ToString("yyyy-MM-dd HH:mm")</td>
-            </tr>
-        }
+            @foreach (var account in _accounts)
+            {
+                <tr>
+                    <td><strong>@account.Name</strong></td>
+                    <td>@account.AccountType</td>
+                    <td>@account.Currency</td>
+                    <td><span class="badge bg-success">@account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</span></td>
+                    <td>@account.LastUpdated.ToString("yyyy-MM-dd HH:mm")</td>
+                </tr>
+            }
         </tbody>
     </table>
 }
 
 @code {
     private List<IBankAccount> _accounts;
+    private string _message = string.Empty;
+    private bool _isError = false;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadAccountsAsync();
+    }
+
+    private async Task LoadAccountsAsync()
+    {
         _accounts = await AccountService.GetAccountsAsync();
+        _message = string.Empty; 
+    }
+
+    private async Task ExportDataAsync()
+    {
+        _message = string.Empty;
+        var json = await AccountService.ExportDataToJsonAsync();
+        var fileName = $"BankApp_Export_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+
+        await JsRuntime.InvokeVoidAsync("BlazorDownloadFile", fileName, json, "application/json");
+        
+        _message = "Data exporterades framgångsrikt som JSON.";
+        _isError = false;
+    }
+
+    private async Task LoadDataAsync(InputFileChangeEventArgs e)
+    {
+        _message = string.Empty;
+        _isError = false;
+
+        var file = e.File;
+        if (file == null) return;
+        
+        try
+        {
+            using var reader = new StreamReader(file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5));
+            var jsonData = await reader.ReadToEndAsync();
+
+            var result = await AccountService.ImportDataFromJsonAsync(jsonData);
+
+            if (string.IsNullOrEmpty(result))
+            {
+                _message = "Data importerades framgångsrikt. Applikationen har uppdaterats.";
+                _isError = false;
+                await LoadAccountsAsync();
+            }
+            else
+            {
+                _message = result;
+                _isError = true;
+            }
+        }
+        catch (IOException ex)
+        {
+            _message = $"Filen är för stor eller kunde inte läsas: {ex.Message}";
+            _isError = true;
+        }
+        catch (Exception ex)
+        {
+            _message = $"Ett fel uppstod under importen: {ex.Message}";
+            _isError = true;
+        }
     }
 }
