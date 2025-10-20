@@ -6,156 +6,157 @@
 
     @if (_accounts == null)
     {
-    <p>Laddar konton...</p>
+        <p>Laddar konton...</p>
     }
     else if (!_accounts.Any())
     {
-    <div class="alert alert-warning" role="alert">
-        Skapa ett konto först innan du kan göra transaktioner.
-    </div>
+        <div class="alert alert-warning" role="alert">
+            Skapa ett konto först innan du kan göra transaktioner.
+        </div>
     }
     else
     {
-    <EditForm Model="_model" OnValidSubmit="HandleSubmitAsync">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
+        <EditForm Model="_model" OnValidSubmit="HandleSubmitAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
 
-        <div class="mb-3">
-            <label class="form-label">Typ av Transaktion:</label>
-            <InputSelect @bind-Value="_model.ActionType" class="form-select">
-                <option value="Simple">Insättning/Uttag</option>
-                <option value="Transfer">Överföring</option>
-            </InputSelect>
-        </div>
+            <div class="mb-3">
+                <label class="form-label">Typ av Transaktion:</label>
+                <InputSelect @bind-Value="_model.ActionType" class="form-select">
+                    <option value="Simple">Insättning/Uttag</option>
+                    <option value="Transfer">Överföring</option>
+                </InputSelect>
+            </div>
 
-        <div class="mb-3">
-            <label class="form-label">Från Konto:</label>
-            <InputSelect @bind-Value="_model.FromAccountId" class="form-select">
-                <option value="">Välj konto...</option>
-                @foreach (var account in _accounts)
-                {
-                <option value="@account.Id">@account.Name (@account.AccountType) - @account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</option>
-                }
-            </InputSelect>
-        </div>
+            <div class="mb-3">
+                <label class="form-label">Från Konto:</label>
+                <InputSelect @bind-Value="_model.FromAccountId" class="form-select">
+                    <option value="">Välj konto...</option>
+                    @foreach (var account in _accounts)
+                    {
+                        <option value="@account.Id">@account.Name (@account.AccountType) - @account.Balance.ToString("N2", new System.Globalization.CultureInfo("sv-SE")) SEK</option>
+                    }
+                </InputSelect>
+            </div>
 
-        @if (_model.ActionType == "Transfer")
-        {
-        <div class="mb-3">
-            <label class="form-label">Till Konto:</label>
-            <InputSelect @bind-Value="_model.ToAccountId" class="form-select">
-                <option value="">Välj mottagarkonto...</option>
-                @foreach (var account in _accounts.Where(a => a.Id != _model.FromAccountId))
-                {
-                <option value="@account.Id">@account.Name (@account.AccountType)</option>
-                }
-            </InputSelect>
-        </div>
-        }
+            @if (_model.ActionType == "Transfer")
+            {
+                <div class="mb-3">
+                    <label class="form-label">Till Konto:</label>
+                    <InputSelect @bind-Value="_model.ToAccountId" class="form-select">
+                        <option value="">Välj mottagarkonto...</option>
+                        @foreach (var account in _accounts.Where(a => a.Id != _model.FromAccountId))
+                        {
+                            <option value="@account.Id">@account.Name (@account.AccountType)</option>
+                        }
+                    </InputSelect>
+                </div>
+            }
+            
+            <div class="mb-3">
+                <label class="form-label">Belopp:</label>
+                <InputNumber @bind-Value="_model.Amount" class="form-control" />
+            </div>
 
-        <div class="mb-3">
-            <label class="form-label">Belopp:</label>
-            <InputNumber @bind-Value="_model.Amount" class="form-control" />
-        </div>
+            @if (_model.ActionType == "Simple")
+            {
+                <div class="mb-3">
+                    <label class="form-label">Åtgärd:</label>
+                    <InputSelect @bind-Value="_model.TransactionType" class="form-select">
+                        <option value="Deposit">Insättning</option>
+                        <option value="Withdraw">Uttag</option>
+                    </InputSelect>
+                </div>
+            }
 
-        @if (_model.ActionType == "Simple")
-        {
-        <div class="mb-3">
-            <label class="form-label">Åtgärd:</label>
-            <InputSelect @bind-Value="_model.TransactionType" class="form-select">
-                <option value="Deposit">Insättning</option>
-                <option value="Withdraw">Uttag</option>
-            </InputSelect>
-        </div>
-        }
-
-        @if (!string.IsNullOrEmpty(_errorMessage))
-        {
-        <div class="alert alert-danger">Fel: @_errorMessage</div>
-        }
-        @if (!string.IsNullOrEmpty(_successMessage))
-        {
-        <div class="alert alert-success">@_successMessage</div>
-        }
-
-        <button type="submit" class="btn btn-primary mt-3">Utför Transaktion</button>
-    </EditForm>
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="alert alert-danger">Fel: @_errorMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(_successMessage))
+            {
+                <div class="alert alert-success">@_successMessage</div>
+            }
+            
+            <button type="submit" class="btn btn-primary mt-3">Utför Transaktion</button>
+        </EditForm>
     }
 </div>
 
 @code {
-private TransactionModel _model = new();
-private List<IBankAccount> _accounts;
-private string _errorMessage;
-private string _successMessage;
+    private TransactionModel _model = new();
+    private List<IBankAccount> _accounts;
+    private string _errorMessage;
+    private string _successMessage;
 
-protected override async Task OnInitializedAsync()
-{
-await LoadAccountsAsync();
-}
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAccountsAsync();
+    }
 
-private async Task LoadAccountsAsync()
-{
-_accounts = await AccountService.GetAccountsAsync();
-}
+    private async Task LoadAccountsAsync()
+    {
+        _accounts = await AccountService.GetAccountsAsync();
+    }
 
-private async Task HandleSubmitAsync()
-{
-_errorMessage = string.Empty;
-_successMessage = string.Empty;
-string result = string.Empty;
+    private async Task HandleSubmitAsync()
+    {
+        _errorMessage = string.Empty;
+        _successMessage = string.Empty;
+        string result = string.Empty;
+        
+        if (_model.FromAccountId == Guid.Empty)
+        {
+            _errorMessage = "Välj ett konto att utföra åtgärden från.";
+            return;
+        }
+        if (_model.Amount <= 0)
+        {
+            _errorMessage = "Beloppet måste vara större än noll.";
+            return;
+        }
 
-if (_model.FromAccountId == Guid.Empty)
-{
-_errorMessage = "Välj ett konto att utföra åtgärden från.";
-return;
-}
-if (_model.Amount <= 0)
-{
-_errorMessage = "Beloppet måste vara större än noll.";
-return;
-}
+        if (_model.ActionType == "Transfer")
+        {
+            if (_model.ToAccountId == Guid.Empty)
+            {
+                _errorMessage = "Välj ett mottagarkonto för överföringen.";
+                return;
+            }
+            result = await AccountService.TransferAsync(_model.FromAccountId, _model.ToAccountId, _model.Amount);
+        }
+        else 
+        {
+            if (_model.TransactionType == "Deposit")
+            {
+                result = await AccountService.DepositAsync(_model.FromAccountId, _model.Amount);
+            }
+            else if (_model.TransactionType == "Withdraw")
+            {
+                result = await AccountService.WithdrawAsync(_model.FromAccountId, _model.Amount);
+            }
+        }
 
-if (_model.ActionType == "Transfer")
-{
-if (_model.ToAccountId == Guid.Empty)
-{
-_errorMessage = "Välj ett mottagarkonto för överföringen.";
-return;
-}
-result = await AccountService.TransferAsync(_model.FromAccountId, _model.ToAccountId, _model.Amount);
-}
-else
-{
-if (_model.TransactionType == "Deposit")
-{
-result = await AccountService.DepositAsync(_model.FromAccountId, _model.Amount);
-}
-else if (_model.TransactionType == "Withdraw")
-{
-result = await AccountService.WithdrawAsync(_model.FromAccountId, _model.Amount);
-}
-}
+        if (!string.IsNullOrEmpty(result))
+        {
+            _errorMessage = result;
+        }
+        else
+        {
+            _successMessage = $"{_model.ActionType} lyckades! Saldo uppdaterat.";
+            _model.Amount = 0;
+            _model.ToAccountId = Guid.Empty;
+            await LoadAccountsAsync(); 
+        }
+    }
 
-if (!string.IsNullOrEmpty(result))
-{
-_errorMessage = result;
-}
-else
-{
-_successMessage = $"{_model.ActionType} lyckades! Saldo uppdaterat.";
-_model.Amount = 0;
-_model.ToAccountId = Guid.Empty;
-await LoadAccountsAsync();
-}
-}
-
-private class TransactionModel
-{
-public Guid FromAccountId { get; set; } = Guid.Empty;
-public Guid ToAccountId { get; set; } = Guid.Empty;
-public string ActionType { get; set; } = "Simple";
-public string TransactionType { get; set; } = "Deposit";
-public decimal Amount { get; set; } = 0;
-}
+    private class TransactionModel
+    {
+        public Guid AccountId { get; set; } = Guid.Empty;
+        public Guid FromAccountId { get; set; } = Guid.Empty;
+        public Guid ToAccountId { get; set; } = Guid.Empty;
+        public string ActionType { get; set; } = "Simple";
+        public string TransactionType { get; set; } = "Deposit";
+        public decimal Amount { get; set; } = 0;
+    }
 }

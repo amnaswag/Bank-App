@@ -57,7 +57,8 @@ public class AccountService : IAccountService
 
         if (account == null) return "Konto hittades inte.";
         
-        if (account.Balance < amount) return $"Övertrassering hindrad: Uttag på {amount:C2} är större än saldot {account.Balance:C2}.";
+        // FIX: Ändrat C2 till N2 och lägger till SEK
+        if (account.Balance < amount) return $"Övertrassering hindrad: Uttag på {amount:N2} SEK är större än saldot {account.Balance:N2} SEK.";
 
         account.Withdrawn(amount);
 
@@ -78,9 +79,10 @@ public class AccountService : IAccountService
 
         if (fromAccount == null || toAccount == null) return "Ett eller båda kontona hittades inte.";
 
+        // FIX: Ändrat C2 till N2 och lägger till SEK
         if (fromAccount.Balance < amount)
         {
-            return $"Övertrassering hindrad: Otillräckligt saldo på avsändarkontot ({fromAccount.Balance:C2}).";
+            return $"Övertrassering hindrad: Otillräckligt saldo på avsändarkontot ({fromAccount.Balance:N2} SEK).";
         }
 
         fromAccount.Withdrawn(amount);
