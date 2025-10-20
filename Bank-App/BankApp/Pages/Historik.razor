@@ -9,10 +9,11 @@
 }
 else
 {
-    <div class="row mb-3">
-        <div class="col-6">
+    <div class="row mb-4 card p-3 shadow-sm">
+        <h4>Filtrering & Sortering</h4>
+        
+        <div class="col-lg-4 col-md-6 mb-3">
             <label class="form-label">Välj Konto</label>
-            
             <select class="form-select" @oninput="OnAccountChanged">
                 <option value="" selected="@(!SelectedAccountId.HasValue)">Välj konto...</option>
                 @foreach (var account in _accounts)
@@ -22,15 +23,34 @@ else
             </select>
         </div>
         
-        <div class="col-6">
+        <div class="col-lg-2 col-md-6 mb-3">
             <label class="form-label">Filtrera Typ</label>
-            
             <select class="form-select" @bind="_selectedTransactionType">
                 <option value="">Visa alla</option>
                 <option value="@TransactionType.Insättning">Insättningar</option>
                 <option value="@TransactionType.Uttag">Uttag</option>
                 <option value="@TransactionType.Överföring">Överföringar</option>
             </select>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <label class="form-label">Startdatum</label>
+            <InputDate @bind-Value="_startDate" class="form-control" />
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <label class="form-label">Slutdatum</label>
+            <InputDate @bind-Value="_endDate" class="form-control" />
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <label class="form-label">Sortera efter</label>
+            <InputSelect @bind-Value="_sortBy" class="form-select">
+                <option value="DateDesc">Datum (Nyaste först)</option>
+                <option value="DateAsc">Datum (Äldsta först)</option>
+                <option value="AmountDesc">Belopp (Högst först)</option>
+                <option value="AmountAsc">Belopp (Lägst först)</option>
+            </InputSelect>
         </div>
     </div>
 
@@ -40,7 +60,7 @@ else
     }
     else if (SelectedAccountId.HasValue && SelectedAccountId.Value != Guid.Empty && !FilteredTransactions.Any())
     {
-        <div class="alert alert-info" role="alert">Inga transaktioner hittades för detta konto.</div>
+        <div class="alert alert-info" role="alert">Inga transaktioner hittades för detta konto med de valda filtren.</div>
     }
     else if (SelectedAccountId.HasValue && SelectedAccountId.Value != Guid.Empty)
     {
@@ -90,11 +110,50 @@ else
     private List<Transaction> _transactions;
     private Guid? SelectedAccountId { get; set; } = null;
     private string? _selectedTransactionType = null;
+    private DateTime? _startDate = null;
+    private DateTime? _endDate = null;
+    private string _sortBy = "DateDesc";
 
-    private IEnumerable<Transaction> FilteredTransactions => _transactions.Where(t => 
-        string.IsNullOrEmpty(_selectedTransactionType) || 
-        (Enum.TryParse<TransactionType>(_selectedTransactionType, true, out var filterType) && t.TransactionType == filterType)
-    );
+    private IEnumerable<Transaction> FilteredTransactions
+    {
+        get
+        {
+            var query = _transactions.AsEnumerable();
+
+            if (!string.IsNullOrEmpty(_selectedTransactionType) && Enum.TryParse<TransactionType>(_selectedTransactionType, true, out var filterType))
+            {
+                query = query.Where(t => t.TransactionType == filterType);
+            }
+
+            if (_startDate.HasValue)
+            {
+                query = query.Where(t => t.Date.Date >= _startDate.Value.Date);
+            }
+            if (_endDate.HasValue)
+            {
+                query = query.Where(t => t.Date.Date <= _endDate.Value.Date);
+            }
+
+            switch (_sortBy)
+            {
+                case "DateAsc":
+                    query = query.OrderBy(t => t.Date);
+                    break;
+                case "AmountDesc":
+                    query = query.OrderByDescending(t => Math.Abs(t.Amount));
+                    break;
+                case "AmountAsc":
+                    query = query.OrderBy(t => Math.Abs(t.Amount));
+                    break;
+                case "DateDesc":
+                default:
+                    query = query.OrderByDescending(t => t.Date);
+                    break;
+            }
+
+            return query.ToList();
+        }
+    }
 
 
     protected override async Task OnInitializedAsync()
