@@ -17,9 +17,7 @@ else
                 <option value="" selected="@(!SelectedAccountId.HasValue)">Välj konto...</option>
                 @foreach (var account in _accounts)
                 {
-                    <option value="@account.Id" selected="@(SelectedAccountId == account.Id)">
-                        @account.Name (@account.AccountType) - Saldo: @account.Balance.ToString("N2", new System.Globalization.CultureInfo("sv-SE")) SEK
-                    </option>
+                    <option value="@account.Id" selected="@(SelectedAccountId == account.Id)">@account.Name (@account.AccountType) - Saldo: @account.Balance.ToString("N2") SEK</option>
                 }
             </select>
         </div>
