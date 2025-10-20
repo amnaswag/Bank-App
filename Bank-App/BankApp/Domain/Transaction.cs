@@ -1,17 +1,13 @@
 ﻿namespace BankApp.Domain;
 
-public class Transaction : ITransaction
+public class Transaction
 {
-    private readonly List<ITransaction> _internalList = new();
-
     public Guid Id { get; } = Guid.NewGuid();
     public DateTime Date { get; }
     public decimal Amount { get; }
     public decimal BalanceAfter { get; }
-    
     public Guid AccountId { get; }
     public Guid? ToAccountId { get; }
-    
     public TransactionType TransactionType { get; }
 
     public Transaction(Guid accountId, TransactionType transactionType, decimal amount, decimal balanceAfter)
