@@ -67,14 +67,45 @@ public class AccountService : IAccountService
         return string.Empty;
     }
 
-    public async Task<List<ITransaction>> GetTransactionsAsync(Guid accountId)
+    public async Task<string> TransferAsync(Guid fromAccountId, Guid toAccountId, decimal amount)
+    {
+        if (amount <= 0) return "Beloppet måste vara större än noll.";
+        if (fromAccountId == toAccountId) return "Kan inte överföra pengar till samma konto.";
+
+        var accounts = await _accountRepository.GetAllAccountsAsync();
+        var fromAccount = accounts.FirstOrDefault(a => a.Id == fromAccountId);
+        var toAccount = accounts.FirstOrDefault(a => a.Id == toAccountId);
+
+        if (fromAccount == null || toAccount == null) return "Ett eller båda kontona hittades inte.";
+
+        if (fromAccount.Balance < amount)
+        {
+            return $"Övertrassering hindrad: Otillräckligt saldo på avsändarkontot ({fromAccount.Balance:C2}).";
+        }
+
+        fromAccount.Withdrawn(amount);
+        await CreateTransactionAsync(fromAccount.Id, TransactionType.Överföring, amount * -1, fromAccount.Balance, toAccount.Id);
+
+        toAccount.Deposit(amount);
+        await CreateTransactionAsync(toAccount.Id, TransactionType.Överföring, amount, toAccount.Balance, fromAccount.Id);
+
+        await _accountRepository.SaveAllAccountsAsync(accounts);
+
+        return string.Empty;
+    }
+
+    public void Transfer(Guid fromAccountId, Guid toAccountId, decimal amount)
+    {
+        TransferAsync(fromAccountId, toAccountId, amount).GetAwaiter().GetResult();
+    }
+
+    public async Task<List<Transaction>> GetTransactionsAsync(Guid accountId)
     {
         var allTransactions = await _storageService.LoadAsync<List<Transaction>>(TransactionsKey);
         
         return (allTransactions ?? new List<Transaction>())
             .Where(t => t.AccountId == accountId)
             .OrderByDescending(t => t.Date)
-            .Cast<ITransaction>()
             .ToList();
     }
     

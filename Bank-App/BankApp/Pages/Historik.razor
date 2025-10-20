@@ -7,33 +7,42 @@
 {
     <p>Laddar konton...</p>
 }
-else if (!_accounts.Any())
-{
-    <p>Inga konton finns att visa historik för.</p>
-}
 else
 {
-    <div style="margin-bottom: 15px;">
-        <label>Välj Konto:</label>
+    <div class="row mb-3">
+        <div class="col-6">
+            <label class="form-label">Välj Konto</label>
+            
+            <select class="form-select" @oninput="OnAccountChanged">
+                <option value="" selected="@(!SelectedAccountId.HasValue)">Välj konto...</option>
+                @foreach (var account in _accounts)
+                {
+                    <option value="@account.Id" selected="@(SelectedAccountId == account.Id)">
+                        @account.Name (@account.AccountType) - Saldo: @account.Balance.ToString("N2", new System.Globalization.CultureInfo("sv-SE")) SEK
+                    </option>
+                }
+            </select>
+        </div>
         
-        <select @onchange="OnAccountChanged">
-            <option value="" selected="@(!SelectedAccountId.HasValue)">Välj konto...</option>
-            @foreach (var account in _accounts)
-            {
-                <option value="@account.Id" selected="@(SelectedAccountId == account.Id)">
-                    @account.Name (@account.AccountType) - Saldo: @account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</option>
-            }
-        </select>
-        
+        <div class="col-6">
+            <label class="form-label">Filtrera Typ</label>
+            
+            <select class="form-select" @bind="_selectedTransactionType">
+                <option value="">Visa alla</option>
+                <option value="@TransactionType.Insättning">Insättningar</option>
+                <option value="@TransactionType.Uttag">Uttag</option>
+                <option value="@TransactionType.Överföring">Överföringar</option>
+            </select>
+        </div>
     </div>
 
     @if (SelectedAccountId.HasValue && SelectedAccountId.Value != Guid.Empty && _transactions == null)
     {
         <p>Laddar historik...</p>
     }
-    else if (SelectedAccountId.HasValue && SelectedAccountId.Value != Guid.Empty && !_transactions.Any())
+    else if (SelectedAccountId.HasValue && SelectedAccountId.Value != Guid.Empty && !FilteredTransactions.Any())
     {
-        <p>Inga transaktioner hittades för detta konto.</p>
+        <div class="alert alert-info" role="alert">Inga transaktioner hittades för detta konto.</div>
     }
     else if (SelectedAccountId.HasValue && SelectedAccountId.Value != Guid.Empty)
     {
@@ -47,15 +56,30 @@ else
                 </tr>
             </thead>
             <tbody>
-                @foreach (var transaction in _transactions)
+                @foreach (var t in FilteredTransactions)
                 {
                     <tr>
-                        <td>@transaction.Date.ToString("yyyy-MM-dd HH:mm:ss")</td>
-                        <td>@transaction.TransactionType</td>
-                        <td style="color: @(transaction.Amount < 0 ? "red" : "green");">
-                            @transaction.Amount.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))
+                        <td>@t.Date.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        <td>
+                            @if (t.TransactionType == TransactionType.Överföring)
+                            {
+                                <span class="badge bg-warning">Överföring @(t.Amount > 0 ? "IN" : "UT")</span>
+                            }
+                            else if (t.Amount > 0)
+                            {
+                                <span class="badge bg-success">Insättning</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Uttag</span>
+                            }
                         </td>
-                        <td>@transaction.BalanceAfter.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</td>
+                        <td>
+                            @t.Amount.ToString("N2", new System.Globalization.CultureInfo("sv-SE")) SEK
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">@t.BalanceAfter.ToString("N2", new System.Globalization.CultureInfo("sv-SE")) SEK</span>
+                        </td>
                     </tr>
                 }
             </tbody>
@@ -65,8 +89,15 @@ else
 
 @code {
     private List<IBankAccount> _accounts;
-    private List<ITransaction> _transactions;
+    private List<Transaction> _transactions;
     private Guid? SelectedAccountId { get; set; } = null;
+    private string? _selectedTransactionType = null;
+
+    private IEnumerable<Transaction> FilteredTransactions => _transactions.Where(t => 
+        string.IsNullOrEmpty(_selectedTransactionType) || 
+        (Enum.TryParse<TransactionType>(_selectedTransactionType, true, out var filterType) && t.TransactionType == filterType)
+    );
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -109,7 +140,7 @@ else
         }
         else
         {
-            _transactions = new List<ITransaction>();
+            _transactions = new List<Transaction>();
         }
     }
 }
