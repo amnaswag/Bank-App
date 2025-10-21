@@ -34,7 +34,8 @@
                     <option value="">Välj konto...</option>
                     @foreach (var account in _accounts)
                     {
-                        <option value="@account.Id">@account.Name (@account.AccountType) - @account.Balance.ToString("N2", new System.Globalization.CultureInfo("sv-SE")) SEK</option>
+                        var isLocked = !string.IsNullOrEmpty(account.PinHash) && !AccountService.IsAccountUnlocked(account.Id);
+                        <option value="@account.Id" disabled="@(isLocked && _model.ActionType != "Deposit")">@account.Name (@account.AccountType) - @(isLocked ? "Låst" : account.Balance.ToString("N2", new System.Globalization.CultureInfo("sv-SE")) + " SEK")</option>
                     }
                 </InputSelect>
             </div>
@@ -78,7 +79,7 @@
                 <div class="alert alert-success">@_successMessage</div>
             }
             
-            <button type="submit" class="btn btn-primary mt-3">Utför Transaktion</button>
+            <button type="submit" class="btn btn-primary mt-3" disabled="@IsSubmitDisabled">Utför Transaktion</button>
         </EditForm>
     }
 </div>
@@ -86,8 +87,29 @@
 @code {
     private TransactionModel _model = new();
     private List<IBankAccount> _accounts;
-    private string _errorMessage;
-    private string _successMessage;
+    private string _errorMessage = string.Empty;
+    private string _successMessage = string.Empty;
+
+    private bool IsSubmitDisabled => 
+        _model.FromAccountId == Guid.Empty || 
+        _model.Amount <= 0 ||
+        (_model.ActionType == "Transfer" && _model.ToAccountId == Guid.Empty) ||
+        (_model.ActionType == "Transfer" && _model.FromAccountId == _model.ToAccountId) ||
+        (IsFromAccountLockedForTransaction());
+
+    private bool IsFromAccountLockedForTransaction()
+    {
+        var account = _accounts?.FirstOrDefault(a => a.Id == _model.FromAccountId);
+        if (account == null || string.IsNullOrEmpty(account.PinHash))
+        {
+            return false;
+        }
+        
+        bool requiresUnlock = _model.ActionType == "Transfer" || 
+                              (_model.ActionType == "Simple" && _model.TransactionType == "Withdraw");
+                              
+        return requiresUnlock && !AccountService.IsAccountUnlocked(account.Id);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -143,7 +165,7 @@
         }
         else
         {
-            _successMessage = $"{_model.ActionType} lyckades! Saldo uppdaterat.";
+            _successMessage = $"Transaktion av typen '{(_model.ActionType == "Transfer" ? "Överföring" : _model.TransactionType)}' lyckades! Saldo uppdaterat.";
             _model.Amount = 0;
             _model.ToAccountId = Guid.Empty;
             await LoadAccountsAsync(); 

@@ -9,6 +9,8 @@
     
     <InputFile OnChange="LoadDataAsync" id="importFile" hidden />
     <label for="importFile" class="btn btn-warning">Importera från JSON</label>
+
+    <button class="btn btn-success" @onclick="ApplyInterestAsync">Applicera 0.5% Ränta (Sparkonton)</button>
 </div>
 
 @if (!string.IsNullOrEmpty(_message))
@@ -36,37 +38,121 @@ else
                 <th>Valuta</th>
                 <th>Saldo</th>
                 <th>Senast Uppdaterad</th>
+                <th>Åtgärd (PIN)</th>
             </tr>
         </thead>
         <tbody>
             @foreach (var account in _accounts)
             {
+                var isLocked = !string.IsNullOrEmpty(account.PinHash) && !AccountService.IsAccountUnlocked(account.Id);
+                
                 <tr>
                     <td><strong>@account.Name</strong></td>
                     <td>@account.AccountType</td>
                     <td>@account.Currency</td>
-                    <td><span class="badge bg-success">@account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</span></td>
+                    <td>
+                        <span class="badge bg-success">
+                            @(isLocked ? "Låst" : account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE")))
+                        </span>
+                    </td>
                     <td>@account.LastUpdated.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        @if (isLocked)
+                        {
+                            <button class="btn btn-secondary btn-sm" @onclick="() => ShowUnlockPrompt(account.Id)">Lås Upp Saldo</button>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>
     </table>
 }
 
+@if (_showUnlockPrompt)
+{
+    <div class="card p-3 mt-3 shadow-lg">
+        <h5>Lås upp konto</h5>
+        <div class="mb-3">
+            <label class="form-label">PIN-kod (Siffror)</label>
+            <InputText @bind-Value="_unlockPin" class="form-control" type="password" maxlength="6" />
+        </div>
+        @if (!string.IsNullOrEmpty(_unlockMessage))
+        {
+            <div class="alert alert-danger">@_unlockMessage</div>
+        }
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" @onclick="UnlockAccountAsync">Verifiera</button>
+            <button class="btn btn-danger" @onclick="CloseUnlockPrompt">Avbryt</button>
+        </div>
+    </div>
+}
+
 @code {
     private List<IBankAccount> _accounts;
     private string _message = string.Empty;
     private bool _isError = false;
+    
+    private bool _showUnlockPrompt = false;
+    private Guid _accountIdToUnlock;
+    private string _unlockPin = string.Empty;
+    private string _unlockMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadAccountsAsync();
     }
+    
+    private void ShowUnlockPrompt(Guid accountId)
+    {
+        _accountIdToUnlock = accountId;
+        _unlockPin = string.Empty;
+        _unlockMessage = string.Empty;
+        _showUnlockPrompt = true;
+    }
+
+    private void CloseUnlockPrompt()
+    {
+        _showUnlockPrompt = false;
+        _unlockMessage = string.Empty;
+    }
+    
+    private async Task UnlockAccountAsync()
+    {
+        if (await AccountService.UnlockAccountAsync(_accountIdToUnlock, _unlockPin))
+        {
+            CloseUnlockPrompt();
+            _message = $"Konto {_accounts.FirstOrDefault(a => a.Id == _accountIdToUnlock)?.Name} är nu upplåst i denna session.";
+            _isError = false;
+            await LoadAccountsAsync();
+        }
+        else
+        {
+            _unlockMessage = "Felaktig PIN-kod.";
+        }
+    }
+
 
     private async Task LoadAccountsAsync()
     {
         _accounts = await AccountService.GetAccountsAsync();
-        _message = string.Empty; 
+    }
+
+    private async Task ApplyInterestAsync()
+    {
+        _message = string.Empty;
+        var result = await AccountService.ApplyInterestAsync(0.005M); 
+        
+        if (string.IsNullOrEmpty(result))
+        {
+            _message = "Ränta på 0.5% applicerades framgångsrikt på alla upplåsta Sparkonton.";
+            _isError = false;
+        }
+        else
+        {
+            _message = result;
+            _isError = true;
+        }
+        await LoadAccountsAsync();
     }
 
     private async Task ExportDataAsync()
@@ -76,7 +162,6 @@ else
         var fileName = $"BankApp_Export_{DateTime.Now:yyyyMMdd_HHmmss}.json";
 
         await JsRuntime.InvokeVoidAsync("BlazorDownloadFile", fileName, json, "application/json");
-        
         _message = "Data exporterades framgångsrikt som JSON.";
         _isError = false;
     }
@@ -88,14 +173,12 @@ else
 
         var file = e.File;
         if (file == null) return;
-        
         try
         {
             using var reader = new StreamReader(file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5));
             var jsonData = await reader.ReadToEndAsync();
 
             var result = await AccountService.ImportDataFromJsonAsync(jsonData);
-
             if (string.IsNullOrEmpty(result))
             {
                 _message = "Data importerades framgångsrikt. Applikationen har uppdaterats.";

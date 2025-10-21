@@ -24,7 +24,12 @@
             
             <div class="mb-3">
                 <label class="form-label">Valuta</label>
-                <InputText @bind-Value="_model.Currency" class="form-control" />
+                <InputSelect @bind-Value="_model.Currency" class="form-select">
+                    @foreach (var currency in Enum.GetValues<CurrencyType>())
+                    {
+                        <option value="@currency">@currency</option>
+                    }
+                </InputSelect>
             </div>
             
             <div class="mb-3">
@@ -117,7 +122,6 @@
             _model.InitialBalance,
             pinToSave
         );
-
         _model.Clear();
         await LoadAccountsAsync();
     }
@@ -132,7 +136,7 @@
     {
         public string Name { get; set; } = string.Empty;
         public AccountType Type { get; set; }
-        public string Currency { get; set; } = "SEK";
+        public CurrencyType Currency { get; set; } = CurrencyType.SEK;
         public decimal InitialBalance { get; set; } = 0;
         public string Pin { get; set; } = string.Empty;
         public bool RequiresPin { get; set; } = false;
@@ -140,7 +144,7 @@
         public void Clear()
         {
             Name = string.Empty;
-            Currency = "SEK";
+            Currency = CurrencyType.SEK;
             InitialBalance = 0;
             Type = default;
             Pin = string.Empty;

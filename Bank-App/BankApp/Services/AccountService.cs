@@ -5,6 +5,7 @@ public class AccountService : IAccountService
     private readonly IAccountRepository _accountRepository;
     private readonly IStorageService _storageService; 
     private const string TransactionsKey = "BankApp_Transactions";
+    private static readonly HashSet<Guid> _unlockedAccounts = new();
 
     public AccountService(IAccountRepository accountRepository, IStorageService storageService)
     {
@@ -12,11 +13,16 @@ public class AccountService : IAccountService
         _storageService = storageService;
     }
 
-    public async Task<IBankAccount> CreateAccountAsync(string name, AccountType type, string currency, decimal initialBalance, string? pinHash = null)
+    public async Task<IBankAccount> CreateAccountAsync(string name, AccountType type, CurrencyType currency, decimal initialBalance, string? pinHash = null)
     {
         var newAccount = new BankAccount(name, type, currency, initialBalance, pinHash);
         
         await _accountRepository.AddAccountAsync(newAccount);
+        
+        if (!string.IsNullOrEmpty(pinHash))
+        {
+            _unlockedAccounts.Add(newAccount.Id);
+        }
         
         return newAccount;
     }
@@ -29,6 +35,10 @@ public class AccountService : IAccountService
     public async Task DeleteAccountAsync(Guid accountId)
     {
         await _accountRepository.DeleteAccountAsync(accountId);
+        if (_unlockedAccounts.Contains(accountId))
+        {
+            _unlockedAccounts.Remove(accountId);
+        }
     }
 
     public async Task<string> DepositAsync(Guid accountId, decimal amount)
@@ -39,6 +49,11 @@ public class AccountService : IAccountService
         var account = accounts.FirstOrDefault(a => a.Id == accountId);
 
         if (account == null) return "Konto hittades inte.";
+        
+        if (!string.IsNullOrEmpty(account.PinHash) && !_unlockedAccounts.Contains(accountId))
+        {
+             return "Konto är låst. Vänligen lås upp det först med PIN-kod för att göra en insättning/uttag.";
+        }
         
         account.Deposit(amount);
         
@@ -57,7 +72,11 @@ public class AccountService : IAccountService
 
         if (account == null) return "Konto hittades inte.";
         
-        // FIX: Ändrat C2 till N2 och lägger till SEK
+        if (!string.IsNullOrEmpty(account.PinHash) && !_unlockedAccounts.Contains(accountId))
+        {
+             return "Konto är låst. Vänligen lås upp det först med PIN-kod för att göra ett uttag.";
+        }
+        
         if (account.Balance < amount) return $"Övertrassering hindrad: Uttag på {amount:N2} SEK är större än saldot {account.Balance:N2} SEK.";
 
         account.Withdrawn(amount);
@@ -78,8 +97,12 @@ public class AccountService : IAccountService
         var toAccount = accounts.FirstOrDefault(a => a.Id == toAccountId);
 
         if (fromAccount == null || toAccount == null) return "Ett eller båda kontona hittades inte.";
-
-        // FIX: Ändrat C2 till N2 och lägger till SEK
+        
+        if (!string.IsNullOrEmpty(fromAccount.PinHash) && !_unlockedAccounts.Contains(fromAccountId))
+        {
+             return $"Avsändarkontot ({fromAccount.Name}) är låst. Vänligen lås upp det först med PIN-kod för att göra en överföring.";
+        }
+        
         if (fromAccount.Balance < amount)
         {
             return $"Övertrassering hindrad: Otillräckligt saldo på avsändarkontot ({fromAccount.Balance:N2} SEK).";
@@ -95,6 +118,40 @@ public class AccountService : IAccountService
 
         return string.Empty;
     }
+    
+    public async Task<string> ApplyInterestAsync(decimal interestRate)
+    {
+        if (interestRate <= 0) return "Räntan måste vara positiv.";
+        
+        var accounts = await _accountRepository.GetAllAccountsAsync();
+        int affectedAccounts = 0;
+        
+        foreach (var account in accounts.Where(a => a.AccountType == AccountType.Sparkonto))
+        {
+            if (!string.IsNullOrEmpty(account.PinHash) && !_unlockedAccounts.Contains(account.Id))
+            {
+                 continue; 
+            }
+            
+            decimal interestAmount = account.Balance * interestRate;
+            
+            if (interestAmount > 0)
+            {
+                account.Deposit(interestAmount);
+                await CreateTransactionAsync(account.Id, TransactionType.Insättning, interestAmount, account.Balance);
+                affectedAccounts++;
+            }
+        }
+        
+        await _accountRepository.SaveAllAccountsAsync(accounts);
+        
+        if (affectedAccounts == 0)
+        {
+            return "Inga upplåsta sparkonton hittades att applicera ränta på.";
+        }
+        
+        return string.Empty;
+    }
 
     public void Transfer(Guid fromAccountId, Guid toAccountId, decimal amount)
     {
@@ -107,7 +164,6 @@ public class AccountService : IAccountService
         
         return (allTransactions ?? new List<Transaction>())
             .Where(t => t.AccountId == accountId)
-            .OrderByDescending(t => t.Date)
             .ToList();
     }
     
@@ -158,9 +214,15 @@ public class AccountService : IAccountService
 
         if (account?.PinHash == pin)
         {
+            _unlockedAccounts.Add(accountId);
             return true;
         }
         return false;
+    }
+    
+    public bool IsAccountUnlocked(Guid accountId)
+    {
+        return _unlockedAccounts.Contains(accountId);
     }
 
     private class ExportModel
