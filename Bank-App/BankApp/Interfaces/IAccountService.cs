@@ -2,7 +2,7 @@
 
 public interface IAccountService
 {
-    Task<IBankAccount> CreateAccountAsync(string name, AccountType accountType, string currency, decimal initalBalance, string? pinHash = null);
+    Task<IBankAccount> CreateAccountAsync(string name, AccountType accountType, CurrencyType currency, decimal initalBalance, string? pinHash = null);
     Task<List<IBankAccount>> GetAccountsAsync();
     Task DeleteAccountAsync(Guid accountId);
     Task<string> DepositAsync(Guid accountId, decimal amount);
@@ -13,6 +13,8 @@ public interface IAccountService
     Task<List<Transaction>> GetTransactionsAsync(Guid accountId); 
 
     Task<bool> UnlockAccountAsync(Guid accountId, string pin);
+    bool IsAccountUnlocked(Guid accountId);
     Task<string> ExportDataToJsonAsync();
     Task<string> ImportDataFromJsonAsync(string jsonData);
+    Task<string> ApplyInterestAsync(decimal interestRate);
 }

@@ -2,15 +2,15 @@
 
 public class BankAccount : IBankAccount
 {
-    public Guid Id { get; private set; } = Guid.NewGuid();
-    public string Name { get; private set; }
-    public AccountType AccountType { get; private set; }
-    public string Currency { get; private set; }
-    public decimal Balance { get; private set; }
-    public DateTime LastUpdated { get; private set; }
-    public string? PinHash { get; private set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; }
+    public AccountType AccountType { get; set; }
+    public CurrencyType Currency { get; set; }
+    public decimal Balance { get; set; }
+    public DateTime LastUpdated { get; set; }
+    public string? PinHash { get; set; }
 
-    public BankAccount(string name, AccountType accountType, string currency, decimal initalBalance, string? pinHash = null)
+    public BankAccount(string name, AccountType accountType, CurrencyType currency, decimal initalBalance, string? pinHash = null)
     {
         Name = name;
         AccountType = accountType;
@@ -21,7 +21,7 @@ public class BankAccount : IBankAccount
     }
     
     [JsonConstructor]
-    public BankAccount(Guid id, string name, AccountType accountType, string currency, decimal balance, DateTime lastUpdated, string? pinHash)
+    public BankAccount(Guid id, string name, AccountType accountType, CurrencyType currency, decimal balance, DateTime lastUpdated, string? pinHash)
     {
         Id = id;
         Name = name;
