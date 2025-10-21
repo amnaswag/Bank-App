@@ -2,13 +2,13 @@
 
 public class Transaction
 {
-    public Guid Id { get; } = Guid.NewGuid();
-    public DateTime Date { get; }
-    public decimal Amount { get; }
-    public decimal BalanceAfter { get; }
-    public Guid AccountId { get; }
-    public Guid? ToAccountId { get; }
-    public TransactionType TransactionType { get; }
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public DateTime Date { get; set; }
+    public decimal Amount { get; set; }
+    public decimal BalanceAfter { get; set; }
+    public Guid AccountId { get; set; }
+    public Guid? ToAccountId { get; set; }
+    public TransactionType TransactionType { get; set; }
 
     public Transaction(Guid accountId, TransactionType transactionType, decimal amount, decimal balanceAfter)
     {
