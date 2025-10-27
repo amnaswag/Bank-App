@@ -1,6 +1,5 @@
 ﻿@page "/nytransaktion"
 @inject IAccountService AccountService
-
 <div class="card shadow-sm p-4">
     <h3>Ny Transaktion</h3>
 
@@ -85,11 +84,19 @@
 </div>
 
 @code {
+    
     private TransactionModel _model = new();
+  
     private List<IBankAccount> _accounts;
+ 
     private string _errorMessage = string.Empty;
+
     private string _successMessage = string.Empty;
 
+    /// <summary>
+    /// Computed property to determine if the submit button should be disabled based on form state.
+    /// Checks for required fields and account locks.
+    /// </summary>
     private bool IsSubmitDisabled => 
         _model.FromAccountId == Guid.Empty || 
         _model.Amount <= 0 ||
@@ -97,6 +104,10 @@
         (_model.ActionType == "Transfer" && _model.FromAccountId == _model.ToAccountId) ||
         (IsFromAccountLockedForTransaction());
 
+    /// <summary>
+    /// Checks if the source account is locked and requires an unlock for the current action.
+    /// Withdrawals and Transfers require an unlocked account if a PIN is set. Deposits do not.
+    /// </summary>
     private bool IsFromAccountLockedForTransaction()
     {
         var account = _accounts?.FirstOrDefault(a => a.Id == _model.FromAccountId);
@@ -111,16 +122,25 @@
         return requiresUnlock && !AccountService.IsAccountUnlocked(account.Id);
     }
 
+    /// <summary>
+    /// Lifecycle method: Loads necessary account data on initialization.
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
         await LoadAccountsAsync();
     }
 
+    /// <summary>
+    /// Fetches the latest list of bank accounts from the service.
+    /// </summary>
     private async Task LoadAccountsAsync()
     {
         _accounts = await AccountService.GetAccountsAsync();
     }
 
+    /// <summary>
+    /// Handles valid form submission, performs business validation, and calls the appropriate service method.
+    /// </summary>
     private async Task HandleSubmitAsync()
     {
         _errorMessage = string.Empty;
@@ -161,24 +181,27 @@
 
         if (!string.IsNullOrEmpty(result))
         {
-            _errorMessage = result;
+            _errorMessage = result; 
         }
         else
         {
             _successMessage = $"Transaktion av typen '{(_model.ActionType == "Transfer" ? "Överföring" : _model.TransactionType)}' lyckades! Saldo uppdaterat.";
-            _model.Amount = 0;
+            _model.Amount = 0; 
             _model.ToAccountId = Guid.Empty;
             await LoadAccountsAsync(); 
         }
     }
 
+    /// <summary>
+    /// ViewModel for the transaction form data.
+    /// </summary>
     private class TransactionModel
     {
         public Guid AccountId { get; set; } = Guid.Empty;
         public Guid FromAccountId { get; set; } = Guid.Empty;
         public Guid ToAccountId { get; set; } = Guid.Empty;
-        public string ActionType { get; set; } = "Simple";
-        public string TransactionType { get; set; } = "Deposit";
+        public string ActionType { get; set; } = "Simple"; 
+        public string TransactionType { get; set; } = "Deposit"; 
         public decimal Amount { get; set; } = 0;
     }
 }

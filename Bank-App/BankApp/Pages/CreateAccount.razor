@@ -1,7 +1,6 @@
 ﻿@page "/CreateAccount"
 @page "/"
 @inject IAccountService AccountService
-
 <div class="row">
     <div class="col-lg-6">
         <h3>Vänligen skapa ett konto</h3>
@@ -17,8 +16,8 @@
             <div class="mb-3">
                 <label class="form-label">Kontotyp</label>
                 <InputSelect @bind-Value="_model.Type" class="form-select">
-                    <option value="@AccountType.Lönekonto">Lönekonto</option>
-                    <option value="@AccountType.Sparkonto">Sparkonto</option>
+                    <option value="@AccountType.SalaryAccount">Lönekonto</option>
+                    <option value="@AccountType.SavingsAccount">Sparkonto</option>
                 </InputSelect>
             </div>
             
@@ -97,11 +96,13 @@
     private CreateAccountModel _model = new();
     private List<IBankAccount> _accounts;
 
+    // Initializes component by loading existing accounts.
     protected override async Task OnInitializedAsync()
     {
         await LoadAccountsAsync();
     }
 
+    // Fetches the latest list of accounts from the service.
     private async Task LoadAccountsAsync()
     {
         _accounts = await AccountService.GetAccountsAsync();
@@ -115,6 +116,7 @@
             pinToSave = _model.Pin;
         }
 
+        // Calls service to create the new account.
         await AccountService.CreateAccountAsync(
             _model.Name,
             _model.Type,
@@ -122,16 +124,18 @@
             _model.InitialBalance,
             pinToSave
         );
-        _model.Clear();
-        await LoadAccountsAsync();
+        _model.Clear(); 
+        await LoadAccountsAsync(); 
     }
     
+    // Deletes an account by ID and reloads the list.
     private async Task DeleteAccountAsync(Guid accountId)
     {
         await AccountService.DeleteAccountAsync(accountId);
         await LoadAccountsAsync();
     }
 
+    // Data structure for the account creation form 
     private class CreateAccountModel
     {
         public string Name { get; set; } = string.Empty;
@@ -140,6 +144,7 @@
         public decimal InitialBalance { get; set; } = 0;
         public string Pin { get; set; } = string.Empty;
         public bool RequiresPin { get; set; } = false;
+        
         
         public void Clear()
         {

@@ -1,5 +1,9 @@
 ﻿namespace BankApp.Services;
 
+/// <summary>
+/// Implements the IAccountRepository contract for managing bank account persistence.
+/// Relies on IStorageService for actual data interaction.
+/// </summary>
 public class AccountRepository : IAccountRepository
 {
     private readonly IStorageService _storageService;
@@ -15,6 +19,9 @@ public class AccountRepository : IAccountRepository
         return await _storageService.LoadAsync<List<BankAccount>>(AccountsKey) ?? new List<BankAccount>();
     }
 
+    /// <summary>
+    /// Constructor for dependency injection.
+    /// </summary>
     public async Task AddAccountAsync(BankAccount account)
     {
         var accounts = await GetAllAccountsAsync();
@@ -22,6 +29,9 @@ public class AccountRepository : IAccountRepository
         await SaveAllAccountsAsync(accounts);
     }
 
+    /// <summary>
+    /// Updates an existing account by replacing the old object with the new one based on ID.
+    /// </summary>
     public async Task UpdateAccountAsync(BankAccount account)
     {
         var accounts = await GetAllAccountsAsync();
@@ -35,6 +45,9 @@ public class AccountRepository : IAccountRepository
         }
     }
 
+    /// <summary>
+    /// Deletes an account from the list by ID and saves the updated list.
+    /// </summary>
     public async Task DeleteAccountAsync(Guid accountId)
     {
         var accounts = await GetAllAccountsAsync();
@@ -42,6 +55,9 @@ public class AccountRepository : IAccountRepository
         await SaveAllAccountsAsync(accounts);
     }
 
+    /// <summary>
+    /// Overwrites the entire list of accounts in persistent storage.
+    /// </summary>
     public async Task SaveAllAccountsAsync(List<BankAccount> accounts)
     {
         await _storageService.SaveAsync(AccountsKey, accounts);
