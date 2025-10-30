@@ -1,0 +1,61 @@
+﻿@page "/login"
+@inject AccessService AccessService
+@inject NavigationManager NavManager
+<div class="d-flex align-items-center justify-content-center" style="height: 100vh;">
+    <div class="card p-4 shadow-lg" style="width: 350px;">
+        <h4 class="card-title text-center">🔐 Bank Of Star </h4>
+        <p class="text-center text-muted">Vänligen ange lösenordet för att fortsätta.</p>
+
+        <div class="mb-3">
+            <label for="passwordInput" class="form-label">Lösenord:</label>
+            <input id="passwordInput" type="password" 
+                   class="form-control" 
+                   @bind="_password" 
+                   @onkeyup="HandleKeyUp"
+                   maxlength="8" />
+        </div>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="alert alert-danger">@_errorMessage</div>
+        }
+
+        <button class="btn btn-success mt-2" @onclick="AttemptLogin">Logga In</button>
+    </div>
+</div>
+
+@code {
+    private string _password = string.Empty;
+    private string _errorMessage = string.Empty;
+
+    /// <summary>
+    /// Checks if the Enter key was pressed to submit the form.
+    /// </summary>
+    private void HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AttemptLogin();
+        }
+    }
+
+    /// <summary>
+    /// Attempts to log in using the AccessService.
+    /// Uses soft navigation to preserve Blazor state on success.
+    /// </summary>
+    private void AttemptLogin()
+    {
+        _errorMessage = string.Empty;
+        
+        if (AccessService.Login(_password))
+        {
+            // Soft navigation to the root page ('/')
+            NavManager.NavigateTo("/"); 
+        }
+        else
+        {
+            _errorMessage = "Felaktigt lösenord. Åtkomst nekad.";
+            _password = string.Empty; // Clear password on failure for security
+        }
+    }
+}

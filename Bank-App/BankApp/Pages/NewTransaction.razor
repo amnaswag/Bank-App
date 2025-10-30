@@ -1,4 +1,4 @@
-﻿@page "/nytransaktion"
+﻿@page "/NewTransaction"
 @inject IAccountService AccountService
 <div class="card shadow-sm p-4">
     <h3>Ny Transaktion</h3>
@@ -158,6 +158,7 @@
             return;
         }
 
+        // Transfer logic
         if (_model.ActionType == "Transfer")
         {
             if (_model.ToAccountId == Guid.Empty)
@@ -167,6 +168,7 @@
             }
             result = await AccountService.TransferAsync(_model.FromAccountId, _model.ToAccountId, _model.Amount);
         }
+        // Simple transaction logic (Deposit or Withdraw)
         else 
         {
             if (_model.TransactionType == "Deposit")
@@ -179,6 +181,7 @@
             }
         }
 
+        // Process service result
         if (!string.IsNullOrEmpty(result))
         {
             _errorMessage = result; 
@@ -188,7 +191,7 @@
             _successMessage = $"Transaktion av typen '{(_model.ActionType == "Transfer" ? "Överföring" : _model.TransactionType)}' lyckades! Saldo uppdaterat.";
             _model.Amount = 0; 
             _model.ToAccountId = Guid.Empty;
-            await LoadAccountsAsync(); 
+            await LoadAccountsAsync(); // Refresh account list
         }
     }
 

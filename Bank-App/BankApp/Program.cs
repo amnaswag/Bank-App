@@ -20,6 +20,11 @@ builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 
 /// <summary>
+/// Registers the AccessService as a Singleton to manage global login state (VG requirement).
+/// </summary>
+builder.Services.AddSingleton<AccessService>(); 
+
+/// <summary>
 /// Builds and runs the application asynchronously.
 /// </summary>
 await builder.Build().RunAsync();

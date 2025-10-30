@@ -1,4 +1,4 @@
-﻿@page "/konton"
+﻿@page "/Accounts"
 @inject IAccountService AccountService
 @inject IJSRuntime JsRuntime
 <h3>Konton</h3>
@@ -47,7 +47,7 @@ else
                 
                 <tr>
                     <td><strong>@account.Name</strong></td>
-                    <td>@account.AccountType</td>
+                    <td>@GetAccountTypeName(account.AccountType)</td>
                     <td>@account.Currency</td>
                     <td>
                         <span class="badge bg-success">
@@ -102,6 +102,19 @@ else
     private string _unlockMessage = string.Empty;
     
     /// <summary>
+    /// Helper method to convert the AccountType Enum to its Swedish descriptive name for display.
+    /// </summary>
+    private string GetAccountTypeName(AccountType type)
+    {
+        return type switch
+        {
+            AccountType.SalaryAccount => "Lönekonto",
+            AccountType.SavingsAccount => "Sparkonto",
+            _ => type.ToString(), // Fallback to C# name
+        };
+    }
+
+    /// <summary>
     /// Lifecycle method: Called after the component has been initialized.
     /// Used here to perform the initial asynchronous data load.
     /// </summary>
@@ -133,7 +146,6 @@ else
     
     /// <summary>
     /// Asynchronously attempts to verify the entered PIN and unlock the account balance in the service session.
-    /// If successful, it updates the status message and reloads accounts.
     /// </summary>
     private async Task UnlockAccountAsync()
     {
@@ -160,7 +172,6 @@ else
 
     /// <summary>
     /// Asynchronously applies a 0.5% interest rate to all qualifying accounts via the service.
-    /// Updates the status message based on the operation's result.
     /// </summary>
     private async Task ApplyInterestAsync()
     {

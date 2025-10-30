@@ -1,5 +1,6 @@
-﻿@page "/historik"
+﻿@page "/History"
 @inject IAccountService AccountService
+
 <h3>Historik</h3>
 
 @if (_accounts == null)
@@ -15,7 +16,7 @@ else
                 <option value="" selected="@(!SelectedAccountId.HasValue)">Välj konto...</option>
                 @foreach (var account in _accounts)
                 {
-                    <option value="@account.Id" selected="@(SelectedAccountId == account.Id)">@account.Name (@account.AccountType) - Saldo: @(string.IsNullOrEmpty(account.PinHash) ? account.Balance.ToString("N2") : "Låst") @account.Currency</option>
+                    <option value="@account.Id" selected="@(SelectedAccountId == account.Id)">@account.Name (@GetAccountTypeName(account.AccountType)) - Saldo: @(string.IsNullOrEmpty(account.PinHash) ? account.Balance.ToString("N2") : "Låst") @account.Currency</option>
                 }
             </select>
         </div>
@@ -113,7 +114,21 @@ else
     private DateTime _dateTo = DateTime.Today.AddDays(1).AddSeconds(-1);
 
     /// <summary>
-    /// Applies filtering (type, date) and sorting to the raw transaction list.
+    /// Helper method to convert the AccountType Enum to its Swedish descriptive name for display.
+    /// </summary>
+    private string GetAccountTypeName(AccountType type)
+    {
+        return type switch
+        {
+            AccountType.SalaryAccount => "Lönekonto",
+            AccountType.SavingsAccount => "Sparkonto",
+            _ => type.ToString(), 
+        };
+    }
+
+    /// <summary>
+    /// Computed property that applies filtering (type, date) and sorting logic to _transactions.
+    /// Sorting for amount uses Math.Abs() to treat deposits and withdrawals equally by magnitude.
     /// </summary>
     private IEnumerable<Transaction> FilteredTransactions
     {
@@ -123,16 +138,13 @@ else
 
             var query = _transactions.AsEnumerable();
 
-            // Applies transaction type filter if set.
             if (!string.IsNullOrEmpty(_selectedTransactionType) && Enum.TryParse<TransactionType>(_selectedTransactionType, true, out var filterType))
             {
                 query = query.Where(t => t.TransactionType == filterType);
             }
 
-            // Applies date range filter.
             query = query.Where(t => t.Date >= _dateFrom && t.Date <= _dateTo);
 
-            // Applies selected sorting logic.
             switch (_selectedSort)
             {
                 case "date_asc":
@@ -168,7 +180,7 @@ else
     }
 
     /// <summary>
-    /// Fetches the list of all bank accounts from the service.
+    /// Fetches the list of all bank accounts.
     /// </summary>
     private async Task LoadAccountsAsync()
     {
@@ -176,11 +188,11 @@ else
     }
     
     /// <summary>
-    /// Handles account dropdown change, resets transactions, and loads new history.
+    /// Event handler for when the account selection changes.
     /// </summary>
     private async Task OnAccountChanged(ChangeEventArgs e)
     {
-        _transactions = null; 
+        _transactions = null;
         if (Guid.TryParse(e.Value?.ToString(), out Guid newId) && newId != Guid.Empty)
         {
             SelectedAccountId = newId;
@@ -190,12 +202,12 @@ else
             SelectedAccountId = null;
         }
         
-        StateHasChanged();
+        StateHasChanged(); 
         await LoadTransactionsForSelectedAccountAsync();
     }
     
     /// <summary>
-    /// Fetches the transaction history for the currently selected account ID.
+    /// Fetches transactions for the currently selected account ID.
     /// </summary>
     private async Task LoadTransactionsForSelectedAccountAsync()
     {
