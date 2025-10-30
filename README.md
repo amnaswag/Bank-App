@@ -19,7 +19,8 @@ Enjoy
 1.  **Export/Import av data i JSON-format:** Exportera alla konton och transaktioner till JSON-fil, och importera dem igen med validering.
 2.  **Ränta på Sparkonto:** En funktion för att applicera 0.5% ränta på alla upplåsta sparkonton (knapp finns på sidan Konton).
 3.  **Åtkomstskydd (PIN-kod):** Konton med PIN-kod låser sitt saldo på kontosidan. Alla transaktioner (utom Insättning) och ränteappliceringar kräver att kontot låses upp med korrekt PIN-kod i den aktuella sessionen (endast UI-låsning).
-4.  **UX-Förbättring (Disable-knapp):** Transaktionsknappen på sidan **Ny Transaktion** är dynamiskt inaktiverad om obligatoriska fält saknas eller om kontot är PIN-skyddat och låst.
+4.  **Lås skärm för access:** Hela applikationen skyddad vid uppstart med lösenord (VG-tillägg)
+5.  **UX-Förbättring (Disable-knapp):** Transaktionsknappen på sidan **Ny Transaktion** är dynamiskt inaktiverad om obligatoriska fält saknas eller om kontot är PIN-skyddat och låst.
 
 ## Tekniska Val och Motiveringar 
 
