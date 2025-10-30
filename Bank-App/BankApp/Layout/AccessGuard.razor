@@ -1,0 +1,48 @@
+﻿@inject AccessService AccessService
+@inject NavigationManager NavManager
+
+@implements IDisposable
+
+@if (AccessService.IsLoggedIn)
+{
+    @ChildContent
+}
+else
+{
+    <LoginPage />
+}
+
+@code {
+    /// <summary>
+    /// Innehållet som ska skyddas (den routade Blazor-sidan).
+    /// </summary>
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    /// <summary>
+    /// Lifecycle method: Utför omdirigeringskontroll och prenumererar på inloggningsevent.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        // Kontrollera om användaren är utloggad och INTE redan på /login-sidan.
+        if (!AccessService.IsLoggedIn)
+        {
+            // Tvinga omdirigering till /login för att visa LoginPage.razor
+            if (!NavManager.Uri.EndsWith("/login", StringComparison.OrdinalIgnoreCase))
+            {
+                NavManager.NavigateTo("/login", replace: true);
+            }
+        }
+        
+        // Prenumerera på eventet så att komponenten ritas om när inloggningen lyckas
+        AccessService.OnChange += StateHasChanged;
+    }
+
+    /// <summary>
+    /// Avprenumererar från eventet vid dispose för att undvika memory leaks.
+    /// </summary>
+    public void Dispose()
+    {
+        AccessService.OnChange -= StateHasChanged;
+    }
+}

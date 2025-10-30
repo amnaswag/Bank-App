@@ -1,6 +1,9 @@
 ﻿<div class="top-row ps-3 navbar navbar-dark">
+    
     <div class="container-fluid">
-        <a class="navbar-brand" href="">Bank of Star</a>
+
+        <a class="navbar-brand" href="/">Bank of Star</a>
+        
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -10,44 +13,52 @@
 <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
     <nav class="flex-column">
         
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="CreateAccount" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Start
+       <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
         </div>
         
-        <div class="nav-item px-3">
+      <div class="nav-item px-3">
             <NavLink class="nav-link" href="CreateAccount">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Skapa konto
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Create Account
             </NavLink>
         </div>
         
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="konton">
-                <span class="bi bi-wallet-fill-nav-menu" aria-hidden="true"></span> Konton
+            <NavLink class="nav-link" href="accounts">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Accounts
             </NavLink>
         </div>
         
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="nytransaktion">
-                <span class="bi bi-arrow-left-right-nav-menu" aria-hidden="true"></span> Ny transaktion
+            <NavLink class="nav-link" href="newtransaction">
+                <span class="bi bi-arrow-left-right-nav-menu" aria-hidden="true"></span> New Transaction
             </NavLink>
         </div>
         
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="historik">
-                <span class="bi bi-clock-history-nav-menu" aria-hidden="true"></span> Historik
+            <NavLink class="nav-link" href="history">
+                <span class="bi bi-clock-history-nav-menu" aria-hidden="true"></span> History
             </NavLink>
         </div>
-        
     </nav>
 </div>
 
 @code {
+    /// <summary>
+    /// Field to control the collapse state of the navigation menu on small screens.
+    /// </summary>
     private bool collapseNavMenu = true;
-
+    
+    /// <summary>
+    /// Gets the CSS class string based on the current collapse state.
+    /// </summary>
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
+    /// <summary>
+    /// Toggles the visibility state of the navigation menu.
+    /// </summary>
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;

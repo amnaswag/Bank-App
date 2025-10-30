@@ -1,7 +1,5 @@
 ﻿@page "/CreateAccount"
-@page "/"
 @inject IAccountService AccountService
-
 <div class="row">
     <div class="col-lg-6">
         <h3>Vänligen skapa ett konto</h3>
@@ -17,8 +15,8 @@
             <div class="mb-3">
                 <label class="form-label">Kontotyp</label>
                 <InputSelect @bind-Value="_model.Type" class="form-select">
-                    <option value="@AccountType.Lönekonto">Lönekonto</option>
-                    <option value="@AccountType.Sparkonto">Sparkonto</option>
+                    <option value="@AccountType.SalaryAccount">Lönekonto</option>
+                    <option value="@AccountType.SavingsAccount">Sparkonto</option>
                 </InputSelect>
             </div>
             
@@ -56,7 +54,7 @@
     
     <div class="col-lg-6">
         <hr class="mt-4" />
-        <h3>Dina Konton (@_accounts.Count)</h3>
+        <h3>Dina Konton (@(_accounts == null ? 0 : _accounts.Count))</h3>
         
         @if (_accounts == null || !_accounts.Any())
         {
@@ -79,7 +77,7 @@
                     {
                         <tr>
                             <td><strong>@account.Name</strong></td>
-                            <td>@account.AccountType</td>
+                            <td>@GetAccountTypeName(account.AccountType)</td>
                             <td>@(string.IsNullOrEmpty(account.PinHash) ? "Nej" : "Ja")</td>
                             <td>@account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</td>
                             <td>
@@ -97,16 +95,38 @@
     private CreateAccountModel _model = new();
     private List<IBankAccount> _accounts;
 
+    /// <summary>
+    /// Helper method to convert the AccountType Enum to its Swedish descriptive name for display.
+    /// </summary>
+    private string GetAccountTypeName(AccountType type)
+    {
+        return type switch
+        {
+            AccountType.SalaryAccount => "Lönekonto",
+            AccountType.SavingsAccount => "Sparkonto",
+            _ => type.ToString(), 
+        };
+    }
+
+    /// <summary>
+    /// Initializes component by loading existing accounts.
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
         await LoadAccountsAsync();
     }
 
+    /// <summary>
+    /// Fetches the latest list of accounts from the service.
+    /// </summary>
     private async Task LoadAccountsAsync()
     {
         _accounts = await AccountService.GetAccountsAsync();
     }
 
+    /// <summary>
+    /// Handles valid form submission, creating the new account via the service.
+    /// </summary>
     private async Task HandleValidSubmitAsync()
     {
         string? pinToSave = null;
@@ -115,6 +135,7 @@
             pinToSave = _model.Pin;
         }
 
+        // Calls service to create the new account.
         await AccountService.CreateAccountAsync(
             _model.Name,
             _model.Type,
@@ -122,16 +143,22 @@
             _model.InitialBalance,
             pinToSave
         );
-        _model.Clear();
-        await LoadAccountsAsync();
+        _model.Clear(); // Clears form after successful creation
+        await LoadAccountsAsync(); // Refreshes the list
     }
     
+    /// <summary>
+    /// Deletes an account by ID and reloads the list.
+    /// </summary>
     private async Task DeleteAccountAsync(Guid accountId)
     {
         await AccountService.DeleteAccountAsync(accountId);
         await LoadAccountsAsync();
     }
 
+    /// <summary>
+    /// ViewModel for the account creation form data.
+    /// </summary>
     private class CreateAccountModel
     {
         public string Name { get; set; } = string.Empty;
@@ -141,6 +168,9 @@
         public string Pin { get; set; } = string.Empty;
         public bool RequiresPin { get; set; } = false;
         
+        /// <summary>
+        /// Resets the form fields to their default state.
+        /// </summary>
         public void Clear()
         {
             Name = string.Empty;

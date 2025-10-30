@@ -4,6 +4,9 @@ using BankApp;
 using BankApp.Interfaces;
 using BankApp.Services;
 
+/// <summary>
+/// The main entry point of the Blazor WebAssembly application.
+/// </summary>
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
@@ -16,4 +19,12 @@ builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 
 builder.Services.AddScoped<IAccountService, AccountService>();
 
+/// <summary>
+/// Registers the AccessService as a Singleton to manage global login state (VG requirement).
+/// </summary>
+builder.Services.AddSingleton<AccessService>(); 
+
+/// <summary>
+/// Builds and runs the application asynchronously.
+/// </summary>
 await builder.Build().RunAsync();

@@ -1,4 +1,4 @@
-﻿@page "/historik"
+﻿@page "/History"
 @inject IAccountService AccountService
 
 <h3>Historik</h3>
@@ -16,7 +16,7 @@ else
                 <option value="" selected="@(!SelectedAccountId.HasValue)">Välj konto...</option>
                 @foreach (var account in _accounts)
                 {
-                    <option value="@account.Id" selected="@(SelectedAccountId == account.Id)">@account.Name (@account.AccountType) - Saldo: @(string.IsNullOrEmpty(account.PinHash) ? account.Balance.ToString("N2") : "Låst") @account.Currency</option>
+                    <option value="@account.Id" selected="@(SelectedAccountId == account.Id)">@account.Name (@GetAccountTypeName(account.AccountType)) - Saldo: @(string.IsNullOrEmpty(account.PinHash) ? account.Balance.ToString("N2") : "Låst") @account.Currency</option>
                 }
             </select>
         </div>
@@ -25,9 +25,9 @@ else
             <label class="form-label">Filtrera Typ</label>
             <select class="form-select" @bind="_selectedTransactionType">
                 <option value="">Visa alla</option>
-                <option value="@TransactionType.Insättning">Insättningar</option>
-                <option value="@TransactionType.Uttag">Uttag</option>
-                <option value="@TransactionType.Överföring">Överföringar</option>
+                <option value="@TransactionType.Deposit">Insättningar</option>
+                <option value="@TransactionType.Withdrawal">Uttag</option>
+                <option value="@TransactionType.Transfer">Överföringar</option>
             </select>
         </div>
         
@@ -78,7 +78,7 @@ else
                     <tr>
                         <td>@t.Date.ToString("yyyy-MM-dd HH:mm:ss")</td>
                         <td>
-                            @if (t.TransactionType == TransactionType.Överföring)
+                            @if (t.TransactionType == TransactionType.Transfer)
                             {
                                 <span class="badge bg-warning">Överföring @(t.Amount > 0 ? "IN" : "UT")</span>
                             }
@@ -113,6 +113,23 @@ else
     private DateTime _dateFrom = DateTime.Today.AddYears(-1);
     private DateTime _dateTo = DateTime.Today.AddDays(1).AddSeconds(-1);
 
+    /// <summary>
+    /// Helper method to convert the AccountType Enum to its Swedish descriptive name for display.
+    /// </summary>
+    private string GetAccountTypeName(AccountType type)
+    {
+        return type switch
+        {
+            AccountType.SalaryAccount => "Lönekonto",
+            AccountType.SavingsAccount => "Sparkonto",
+            _ => type.ToString(), 
+        };
+    }
+
+    /// <summary>
+    /// Computed property that applies filtering (type, date) and sorting logic to _transactions.
+    /// Sorting for amount uses Math.Abs() to treat deposits and withdrawals equally by magnitude.
+    /// </summary>
     private IEnumerable<Transaction> FilteredTransactions
     {
         get
@@ -149,6 +166,9 @@ else
         }
     }
 
+    /// <summary>
+    /// Initializes accounts, selects the first one, and loads its transactions.
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
         await LoadAccountsAsync();
@@ -159,11 +179,17 @@ else
         }
     }
 
+    /// <summary>
+    /// Fetches the list of all bank accounts.
+    /// </summary>
     private async Task LoadAccountsAsync()
     {
         _accounts = await AccountService.GetAccountsAsync();
     }
     
+    /// <summary>
+    /// Event handler for when the account selection changes.
+    /// </summary>
     private async Task OnAccountChanged(ChangeEventArgs e)
     {
         _transactions = null;
@@ -180,6 +206,9 @@ else
         await LoadTransactionsForSelectedAccountAsync();
     }
     
+    /// <summary>
+    /// Fetches transactions for the currently selected account ID.
+    /// </summary>
     private async Task LoadTransactionsForSelectedAccountAsync()
     {
         if (SelectedAccountId.HasValue && SelectedAccountId.Value != Guid.Empty)

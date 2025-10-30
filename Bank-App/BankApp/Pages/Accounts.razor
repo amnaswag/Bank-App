@@ -1,9 +1,7 @@
-﻿@page "/konton"
+﻿@page "/Accounts"
 @inject IAccountService AccountService
 @inject IJSRuntime JsRuntime
-
 <h3>Konton</h3>
-
 <div class="mb-3 d-flex justify-content-end gap-2">
     <button class="btn btn-info" @onclick="ExportDataAsync">Exportera till JSON</button>
     
@@ -22,6 +20,7 @@
 {
     <p>Laddar konton...</p>
 }
+
 else if (!_accounts.Any())
 {
     <div class="alert alert-info" role="alert">
@@ -48,7 +47,7 @@ else
                 
                 <tr>
                     <td><strong>@account.Name</strong></td>
-                    <td>@account.AccountType</td>
+                    <td>@GetAccountTypeName(account.AccountType)</td>
                     <td>@account.Currency</td>
                     <td>
                         <span class="badge bg-success">
@@ -89,19 +88,45 @@ else
 
 @code {
     private List<IBankAccount> _accounts;
+  
     private string _message = string.Empty;
-    private bool _isError = false;
-    
-    private bool _showUnlockPrompt = false;
-    private Guid _accountIdToUnlock;
-    private string _unlockPin = string.Empty;
-    private string _unlockMessage = string.Empty;
 
+    private bool _isError = false;
+
+    private bool _showUnlockPrompt = false;
+
+    private Guid _accountIdToUnlock;
+    
+    private string _unlockPin = string.Empty;
+    
+    private string _unlockMessage = string.Empty;
+    
+    /// <summary>
+    /// Helper method to convert the AccountType Enum to its Swedish descriptive name for display.
+    /// </summary>
+    private string GetAccountTypeName(AccountType type)
+    {
+        return type switch
+        {
+            AccountType.SalaryAccount => "Lönekonto",
+            AccountType.SavingsAccount => "Sparkonto",
+            _ => type.ToString(), // Fallback to C# name
+        };
+    }
+
+    /// <summary>
+    /// Lifecycle method: Called after the component has been initialized.
+    /// Used here to perform the initial asynchronous data load.
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
         await LoadAccountsAsync();
     }
     
+    /// <summary>
+    /// Prepares the state and displays the PIN unlock prompt for a specific account ID.
+    /// Clears any previous PIN or unlock messages.
+    /// </summary>
     private void ShowUnlockPrompt(Guid accountId)
     {
         _accountIdToUnlock = accountId;
@@ -110,12 +135,18 @@ else
         _showUnlockPrompt = true;
     }
 
+    /// <summary>
+    /// Closes and resets the PIN unlock prompt UI element.
+    /// </summary>
     private void CloseUnlockPrompt()
     {
         _showUnlockPrompt = false;
         _unlockMessage = string.Empty;
     }
     
+    /// <summary>
+    /// Asynchronously attempts to verify the entered PIN and unlock the account balance in the service session.
+    /// </summary>
     private async Task UnlockAccountAsync()
     {
         if (await AccountService.UnlockAccountAsync(_accountIdToUnlock, _unlockPin))
@@ -123,7 +154,7 @@ else
             CloseUnlockPrompt();
             _message = $"Konto {_accounts.FirstOrDefault(a => a.Id == _accountIdToUnlock)?.Name} är nu upplåst i denna session.";
             _isError = false;
-            await LoadAccountsAsync();
+            await LoadAccountsAsync(); 
         }
         else
         {
@@ -131,15 +162,21 @@ else
         }
     }
 
-
+    /// <summary>
+    /// Asynchronously retrieves the latest list of bank accounts from the injected service.
+    /// </summary>
     private async Task LoadAccountsAsync()
     {
         _accounts = await AccountService.GetAccountsAsync();
     }
 
+    /// <summary>
+    /// Asynchronously applies a 0.5% interest rate to all qualifying accounts via the service.
+    /// </summary>
     private async Task ApplyInterestAsync()
     {
         _message = string.Empty;
+        // The interest rate is passed as a decimal (0.5% = 0.005)
         var result = await AccountService.ApplyInterestAsync(0.005M); 
         
         if (string.IsNullOrEmpty(result))
@@ -155,6 +192,10 @@ else
         await LoadAccountsAsync();
     }
 
+    /// <summary>
+    /// Asynchronously fetches account data as a JSON string and uses JavaScript Interop 
+    /// to trigger a file download in the browser.
+    /// </summary>
     private async Task ExportDataAsync()
     {
         _message = string.Empty;
@@ -166,6 +207,11 @@ else
         _isError = false;
     }
 
+    /// <summary>
+    /// Event handler for file selection. Reads the uploaded JSON file content 
+    /// and initiates the data import process via the service.
+    /// Includes error handling for file size and import issues.
+    /// </summary>
     private async Task LoadDataAsync(InputFileChangeEventArgs e)
     {
         _message = string.Empty;
@@ -173,6 +219,7 @@ else
 
         var file = e.File;
         if (file == null) return;
+        
         try
         {
             using var reader = new StreamReader(file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5));
@@ -196,6 +243,7 @@ else
             _message = $"Filen är för stor eller kunde inte läsas: {ex.Message}";
             _isError = true;
         }
+        // Generic catch-all for unexpected errors during the import process.
         catch (Exception ex)
         {
             _message = $"Ett fel uppstod under importen: {ex.Message}";
