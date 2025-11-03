@@ -1,43 +1,51 @@
 ﻿<div class="top-row ps-3 navbar navbar-dark">
-    
+    <!-- Top navigation row: contains brand and menu toggle button -->
     <div class="container-fluid">
 
+        <!-- Brand link: returns to home page -->
         <a class="navbar-brand" href="/">Bank of Star</a>
         
+        <!-- Toggle button: toggles the navigation menu visibility -->
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
     </div>
 </div>
 
+<!-- Collapsible nav container: class is computed via NavMenuCssClass, clicking here also toggles menu -->
 <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
     <nav class="flex-column">
         
        <div class="nav-item px-3">
+            <!-- Home link: uses NavLink and matches the root route exactly -->
             <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
         </div>
         
       <div class="nav-item px-3">
+            <!-- Create Account link -->
             <NavLink class="nav-link" href="CreateAccount">
                 <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Create Account
             </NavLink>
         </div>
         
         <div class="nav-item px-3">
+            <!-- Accounts list link -->
             <NavLink class="nav-link" href="accounts">
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Accounts
             </NavLink>
         </div>
         
         <div class="nav-item px-3">
+            <!-- New Transaction link -->
             <NavLink class="nav-link" href="newtransaction">
                 <span class="bi bi-arrow-left-right-nav-menu" aria-hidden="true"></span> New Transaction
             </NavLink>
         </div>
         
         <div class="nav-item px-3">
+            <!-- Transaction history link -->
             <NavLink class="nav-link" href="history">
                 <span class="bi bi-clock-history-nav-menu" aria-hidden="true"></span> History
             </NavLink>

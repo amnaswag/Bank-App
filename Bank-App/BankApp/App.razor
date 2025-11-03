@@ -1,13 +1,21 @@
 ﻿@using BankApp.Pages
 <Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
+        <!-- AccessGuard: wraps route views to enforce login/access rules before rendering the page -->
         <AccessGuard>
+            <!-- RouteView: renders the matched page component and uses MainLayout as default layout -->
             <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)"/>
         </AccessGuard>
+
+        <!-- FocusOnNavigate: moves keyboard focus to the first <h1> on navigation for accessibility -->
         <FocusOnNavigate RouteData="@routeData" Selector="h1"/>
     </Found>
+
     <NotFound>
+        <!-- Page title for not-found route -->
         <PageTitle>Not found</PageTitle>
+
+        <!-- LayoutView: displays a message inside the MainLayout when no route matches -->
         <LayoutView Layout="@typeof(MainLayout)">
             <p role="alert">Sorry, there's nothing at this address.</p>
         </LayoutView>

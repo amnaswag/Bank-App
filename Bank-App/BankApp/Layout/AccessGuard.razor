@@ -14,32 +14,32 @@ else
 
 @code {
     /// <summary>
-    /// Innehållet som ska skyddas (den routade Blazor-sidan).
+    /// The content to protect (the routed Blazor page).
     /// </summary>
     [Parameter]
     public RenderFragment ChildContent { get; set; }
 
     /// <summary>
-    /// Lifecycle method: Utför omdirigeringskontroll och prenumererar på inloggningsevent.
+    /// Lifecycle method: performs redirect check and subscribes to login events.
     /// </summary>
     protected override void OnInitialized()
     {
-        // Kontrollera om användaren är utloggad och INTE redan på /login-sidan.
+        // Check if the user is logged out and NOT already on the /login page.
         if (!AccessService.IsLoggedIn)
         {
-            // Tvinga omdirigering till /login för att visa LoginPage.razor
+            // Force a redirect to /login to show LoginPage.razor
             if (!NavManager.Uri.EndsWith("/login", StringComparison.OrdinalIgnoreCase))
             {
                 NavManager.NavigateTo("/login", replace: true);
             }
         }
         
-        // Prenumerera på eventet så att komponenten ritas om när inloggningen lyckas
+        // Subscribe to the event so the component re-renders when login succeeds
         AccessService.OnChange += StateHasChanged;
     }
 
     /// <summary>
-    /// Avprenumererar från eventet vid dispose för att undvika memory leaks.
+    /// Unsubscribes from the event on dispose to avoid memory leaks.
     /// </summary>
     public void Dispose()
     {

@@ -3,10 +3,12 @@
 <div class="card shadow-sm p-4">
     <h3>Ny Transaktion</h3>
 
+    <!-- Show loading state if accounts are not yet loaded -->
     @if (_accounts == null)
     {
         <p>Laddar konton...</p>
     }
+    <!-- Warn user if there are no accounts to transact with -->
     else if (!_accounts.Any())
     {
         <div class="alert alert-warning" role="alert">
@@ -15,12 +17,14 @@
     }
     else
     {
+        <!-- Transaction form with validation -->
         <EditForm Model="_model" OnValidSubmit="HandleSubmitAsync">
             <DataAnnotationsValidator />
             <ValidationSummary />
 
             <div class="mb-3">
                 <label class="form-label">Typ av Transaktion:</label>
+                <!-- Select between simple (deposit/withdraw) and transfer -->
                 <InputSelect @bind-Value="_model.ActionType" class="form-select">
                     <option value="Simple">Insättning/Uttag</option>
                     <option value="Transfer">Överföring</option>
@@ -29,6 +33,7 @@
 
             <div class="mb-3">
                 <label class="form-label">Från Konto:</label>
+                <!-- Source account selector; locked accounts may be disabled for some actions -->
                 <InputSelect @bind-Value="_model.FromAccountId" class="form-select">
                     <option value="">Välj konto...</option>
                     @foreach (var account in _accounts)
@@ -39,6 +44,7 @@
                 </InputSelect>
             </div>
 
+            <!-- If transfer, show recipient account selector (exclude the chosen From account) -->
             @if (_model.ActionType == "Transfer")
             {
                 <div class="mb-3">
@@ -55,9 +61,11 @@
             
             <div class="mb-3">
                 <label class="form-label">Belopp:</label>
+                <!-- Amount input -->
                 <InputNumber @bind-Value="_model.Amount" class="form-control" />
             </div>
 
+            <!-- For simple transactions, let the user choose Deposit or Withdraw -->
             @if (_model.ActionType == "Simple")
             {
                 <div class="mb-3">
@@ -69,6 +77,7 @@
                 </div>
             }
 
+            <!-- Show error or success messages returned from processing -->
             @if (!string.IsNullOrEmpty(_errorMessage))
             {
                 <div class="alert alert-danger">Fel: @_errorMessage</div>
@@ -78,19 +87,21 @@
                 <div class="alert alert-success">@_successMessage</div>
             }
             
+            <!-- Submit button; disabled when form state is invalid per IsSubmitDisabled -->
             <button type="submit" class="btn btn-primary mt-3" disabled="@IsSubmitDisabled">Utför Transaktion</button>
         </EditForm>
     }
 </div>
 
 @code {
-    
+    // Form view model for the transaction input
     private TransactionModel _model = new();
   
+    // Cached account list
     private List<IBankAccount> _accounts;
  
+    // Error and success messages shown to the user
     private string _errorMessage = string.Empty;
-
     private string _successMessage = string.Empty;
 
     /// <summary>
