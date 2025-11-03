@@ -46,7 +46,7 @@ Enjoy
     ```bash
     dotnet run --project BankApp
     ```
-3.  **Öppna:** Öppna din webbläsare och gå till den URL som visas i terminalen (t.ex. `http://localhost:5034` eller `https://localhost:7143`).
+3.  **Öppna:** Öppna din webbläsare och gå till den URL som visas i terminalen (t.ex. `http://localhost:5034` eller `https://localhost:7143`). och skriv in lösenordet "VG2024" 
 
 
 Lycka till ヾ(•ω•`)o // Amna
