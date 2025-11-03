@@ -1,19 +1,23 @@
 ﻿@page "/CreateAccount"
 @inject IAccountService AccountService
+
 <div class="row">
     <div class="col-lg-6">
         <h3>Vänligen skapa ett konto</h3>
+        <!-- Form to create a new account: model binding and validation -->
         <EditForm Model="_model" OnValidSubmit="HandleValidSubmitAsync">
             <DataAnnotationsValidator />
             <ValidationSummary />
 
             <div class="mb-3">
                 <label class="form-label">Kontonamn</label>
+                <!-- Account name input -->
                 <InputText @bind-Value="_model.Name" class="form-control" />
             </div>
             
             <div class="mb-3">
                 <label class="form-label">Kontotyp</label>
+                <!-- Account type selector -->
                 <InputSelect @bind-Value="_model.Type" class="form-select">
                     <option value="@AccountType.SalaryAccount">Lönekonto</option>
                     <option value="@AccountType.SavingsAccount">Sparkonto</option>
@@ -22,6 +26,7 @@
             
             <div class="mb-3">
                 <label class="form-label">Valuta</label>
+                <!-- Currency selector populated from enum values -->
                 <InputSelect @bind-Value="_model.Currency" class="form-select">
                     @foreach (var currency in Enum.GetValues<CurrencyType>())
                     {
@@ -32,36 +37,43 @@
             
             <div class="mb-3">
                 <label class="form-label">Start saldo</label>
+                <!-- Initial balance input -->
                 <InputNumber @bind-Value="_model.InitialBalance" class="form-control" />
             </div>
             
             <div class="mb-3 form-check">
+                <!-- Checkbox to indicate whether a PIN is required for the account -->
                 <InputCheckbox @bind-Value="_model.RequiresPin" class="form-check-input" id="requiresPinCheck" />
                 <label class="form-check-label" for="requiresPinCheck">Kräv PIN-kod för detta konto (Valfri)</label>
             </div>
             
             @if (_model.RequiresPin)
             {
+                <!-- PIN input shown only when RequiresPin is checked -->
                 <div class="mb-3">
                     <label class="form-label">PIN-kod (Siffror)</label>
                     <InputText @bind-Value="_model.Pin" class="form-control" type="password" maxlength="6" />
                 </div>
             }
 
+            <!-- Submit button to create account -->
             <button type="submit" class="btn btn-primary mt-3">Skapa Konto</button>
         </EditForm>
     </div>
     
     <div class="col-lg-6">
         <hr class="mt-4" />
+        <!-- Shows number of existing accounts -->
         <h3>Dina Konton (@(_accounts == null ? 0 : _accounts.Count))</h3>
         
         @if (_accounts == null || !_accounts.Any())
         {
+            <!-- Empty state when no accounts exist -->
             <p>Inga konton registrerade.</p>
         }
         else
         {
+            <!-- Table listing existing accounts with delete action -->
             <table class="table table-striped table-hover">
                 <thead>
                     <tr>
@@ -78,9 +90,12 @@
                         <tr>
                             <td><strong>@account.Name</strong></td>
                             <td>@GetAccountTypeName(account.AccountType)</td>
+                            <!-- Shows whether a PIN is set for the account -->
                             <td>@(string.IsNullOrEmpty(account.PinHash) ? "Nej" : "Ja")</td>
+                            <!-- Formatted balance using Swedish culture -->
                             <td>@account.Balance.ToString("C2", new System.Globalization.CultureInfo("sv-SE"))</td>
                             <td>
+                                <!-- Delete button for the account -->
                                 <button @onclick="() => DeleteAccountAsync(account.Id)" class="btn btn-danger btn-sm">Radera</button>
                             </td>
                         </tr>
@@ -92,7 +107,9 @@
 </div>
 
 @code {
+    // Form model for creating an account
     private CreateAccountModel _model = new();
+    // Cached list of accounts
     private List<IBankAccount> _accounts;
 
     /// <summary>

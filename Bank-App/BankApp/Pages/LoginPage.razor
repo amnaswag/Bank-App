@@ -1,13 +1,16 @@
 ﻿@page "/login"
 @inject AccessService AccessService
 @inject NavigationManager NavManager
+
 <div class="d-flex align-items-center justify-content-center" style="height: 100vh;">
     <div class="card p-4 shadow-lg" style="width: 350px;">
+        <!-- Card title and instruction -->
         <h4 class="card-title text-center">🔐 Bank Of Star </h4>
         <p class="text-center text-muted">Vänligen ange lösenordet för att fortsätta.</p>
 
         <div class="mb-3">
             <label for="passwordInput" class="form-label">Lösenord:</label>
+            <!-- Password input bound to _password; Enter key triggers HandleKeyUp -->
             <input id="passwordInput" type="password" 
                    class="form-control" 
                    @bind="_password" 
@@ -15,21 +18,26 @@
                    maxlength="8" />
         </div>
 
+        <!-- Error message shown when login fails -->
         @if (!string.IsNullOrEmpty(_errorMessage))
         {
             <div class="alert alert-danger">@_errorMessage</div>
         }
 
+        <!-- Login button triggers AttemptLogin -->
         <button class="btn btn-success mt-2" @onclick="AttemptLogin">Logga In</button>
     </div>
 </div>
 
 @code {
+    // Bound password value from the input
     private string _password = string.Empty;
+    // Error message displayed on failed login attempts
     private string _errorMessage = string.Empty;
 
     /// <summary>
-    /// Checks if the Enter key was pressed to submit the form.
+    /// Handle keyboard input on the password field.
+    /// Submits the form when the Enter key is pressed.
     /// </summary>
     private void HandleKeyUp(KeyboardEventArgs e)
     {
@@ -40,8 +48,9 @@
     }
 
     /// <summary>
-    /// Attempts to log in using the AccessService.
-    /// Uses soft navigation to preserve Blazor state on success.
+    /// Attempts login via AccessService.
+    /// On success navigates to the root page.
+    /// On failure displays an error and clears the password for security.
     /// </summary>
     private void AttemptLogin()
     {
@@ -49,11 +58,12 @@
         
         if (AccessService.Login(_password))
         {
-            // Soft navigation to the root page ('/')
+            // Soft navigation to the root page ('/') preserving Blazor state
             NavManager.NavigateTo("/"); 
         }
         else
         {
+            // Show error and clear the input on failure
             _errorMessage = "Felaktigt lösenord. Åtkomst nekad.";
             _password = string.Empty; // Clear password on failure for security
         }

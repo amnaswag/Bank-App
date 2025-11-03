@@ -1,14 +1,19 @@
 ﻿@inherits LayoutComponentBase
 <div class="page">
+    <!-- Main layout wrapper: contains sidebar and main content area -->
     <div class="sidebar">
+        <!-- Sidebar navigation area: renders the NavMenu component -->
         <NavMenu/>
     </div>
 
     <main>
+        <!-- Top row for utility links or actions -->
         <div class="top-row px-4">
+            <!-- External link to ASP.NET Core docs; opens in a new tab -->
             <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
         </div>
 
+        <!-- Primary page content: routed pages will render here -->
         <article class="content px-4">
             @Body
         </article>
