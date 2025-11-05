@@ -2,11 +2,10 @@
 {
     /// <summary>
     /// Service for managing application access control and login status.
-    /// Required password for VG is 'VG2024'.
+    /// Required password for the webbsite is 'VG2024'.
     /// </summary>
     public class AccessService
     {
-        // Hardcoded password for the VG feature (security measure)
         private const string RequiredPassword = "VG2024";
 
         /// <summary>

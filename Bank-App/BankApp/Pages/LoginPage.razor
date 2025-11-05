@@ -30,9 +30,7 @@
 </div>
 
 @code {
-    // Bound password value from the input
     private string _password = string.Empty;
-    // Error message displayed on failed login attempts
     private string _errorMessage = string.Empty;
 
     /// <summary>
@@ -58,14 +56,12 @@
         
         if (AccessService.Login(_password))
         {
-            // Soft navigation to the root page ('/') preserving Blazor state
             NavManager.NavigateTo("/"); 
         }
         else
         {
-            // Show error and clear the input on failure
             _errorMessage = "Felaktigt lösenord. Åtkomst nekad.";
-            _password = string.Empty; // Clear password on failure for security
+            _password = string.Empty; 
         }
     }
 }

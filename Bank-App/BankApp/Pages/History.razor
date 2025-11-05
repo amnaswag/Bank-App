@@ -117,14 +117,11 @@ else
 }
 
 @code {
-    // Cached accounts and transactions
     private List<IBankAccount> _accounts;
     private List<Transaction> _transactions;
 
-    // Currently selected account id (nullable)
     private Guid? SelectedAccountId { get; set; } = null;
 
-    // UI state for filters and sorting
     private string _selectedTransactionType = string.Empty;
     private string _selectedSort = "date_desc";
     private DateTime _dateFrom = DateTime.Today.AddYears(-1);
@@ -155,16 +152,13 @@ else
 
             var query = _transactions.AsEnumerable();
 
-            // Apply transaction type filter if selected
             if (!string.IsNullOrEmpty(_selectedTransactionType) && Enum.TryParse<TransactionType>(_selectedTransactionType, true, out var filterType))
             {
                 query = query.Where(t => t.TransactionType == filterType);
             }
 
-            // Apply date range filter
             query = query.Where(t => t.Date >= _dateFrom && t.Date <= _dateTo);
 
-            // Apply sorting based on selected sort option
             switch (_selectedSort)
             {
                 case "date_asc":
@@ -223,8 +217,6 @@ else
         {
             SelectedAccountId = null;
         }
-        
-        // Update UI immediately and then load transactions
         StateHasChanged(); 
         await LoadTransactionsForSelectedAccountAsync();
     }

@@ -20,7 +20,7 @@ else
     public RenderFragment ChildContent { get; set; }
 
     /// <summary>
-    /// Lifecycle method: performs redirect check and subscribes to login events.
+    /// Performs redirect check to login events.
     /// </summary>
     protected override void OnInitialized()
     {
@@ -34,12 +34,12 @@ else
             }
         }
         
-        // Subscribe to the event so the component re-renders when login succeeds
+        // Re-renders when login succeeds
         AccessService.OnChange += StateHasChanged;
     }
 
     /// <summary>
-    /// Unsubscribes from the event on dispose to avoid memory leaks.
+    /// Avoid memory leaks.
     /// </summary>
     public void Dispose()
     {

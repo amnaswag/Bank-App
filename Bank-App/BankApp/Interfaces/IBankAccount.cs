@@ -15,7 +15,7 @@ public interface IBankAccount
     string? PinHash { get; set; }
 
     
-    // Adds an amount to the balance (deposit logic).
+    // Adds an amount to the balance 
     void Withdrawn(decimal amount);
     void Deposit(decimal amount);
 }
