@@ -273,7 +273,7 @@ public class AccountService : IAccountService
     /// <summary>
     /// Private model for serializing and deserializing export/import data structure.
     /// </summary>
-    private class ExportModel
+    private class ExportModel  
     {
         public List<BankAccount>? Accounts { get; set; }
         public List<Transaction>? Transactions { get; set; }
