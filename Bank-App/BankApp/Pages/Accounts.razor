@@ -96,6 +96,8 @@ else
     </div>
 }
 
+@using System.Timers
+@implements IDisposable
 @code {
     private List<IBankAccount> _accounts;
     private string _message = string.Empty;      
@@ -104,6 +106,11 @@ else
     private Guid _accountIdToUnlock;             
     private string _unlockPin = string.Empty;    
     private string _unlockMessage = string.Empty;
+
+    /// <summary>
+    /// Timer object for automatic interest application.
+    /// </summary>
+    private Timer _timer;
 
     /// <summary>
     /// Helper method to convert the AccountType enum to a Swedish display name.
@@ -119,11 +126,37 @@ else
     }
 
     /// <summary>
-    /// Loads accounts when the component initializes.
+    /// Loads accounts when the component initializes and starts the interest timer.
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
         await LoadAccountsAsync();
+        
+        // Timer implementation for automatic interest application (Every 5 seconds).
+        _timer = new Timer(5000); 
+        _timer.Elapsed += async (sender, e) => await OnInterestTimerElapsed();
+        _timer.AutoReset = true;
+        _timer.Enabled = true;
+    }
+    
+    /// <summary>
+    /// Event handler that runs when the timer elapses (every 5 seconds).
+    /// Applies interest and forces a UI update.
+    /// </summary>
+    private async Task OnInterestTimerElapsed()
+    {
+        await AccountService.ApplyInterestAsync(0.005M); 
+
+        await InvokeAsync(LoadAccountsAsync);
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    /// <summary>
+    /// Critical: Disposes the timer when the component is removed to prevent memory leaks.
+    /// </summary>
+    public void Dispose()
+    {
+        _timer?.Dispose();
     }
     
     /// <summary>
@@ -177,7 +210,7 @@ else
 
     /// <summary>
     /// Applies 0.5% interest rate to qualifying accounts through the service and reloads data.
-    /// Sets a success or error message based on the service result.
+    /// Sets a success or error message based on the service result. (Manual Button Logic)
     /// </summary>
     private async Task ApplyInterestAsync()
     {
